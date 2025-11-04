@@ -109,9 +109,9 @@ function handleSendMessage(messageText: string) {
   sendMessage({
     author: author.value || 'Anônimo',
     text: messageText,
+    type: 'text',
     status: 'sent',
   });
-  text.value = '';
   scrollToBottom();
 }
 

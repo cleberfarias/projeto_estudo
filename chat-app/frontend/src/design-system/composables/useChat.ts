@@ -1,6 +1,7 @@
 import { ref, onMounted, onBeforeUnmount } from 'vue';
 import { io, Socket } from 'socket.io-client';
 import type { Message } from '../types';
+import { validateAndNormalizeMessage } from '../types/validation';
 
 export function useChat(socketUrl: string) {
   const messages = ref<Message[]>([]);
@@ -23,20 +24,24 @@ export function useChat(socketUrl: string) {
       console.log('❌ Desconectado do servidor');
     });
 
-    socket.on('chat:new-message', (msg: Message) => {
-      console.log('📨 Nova mensagem recebida:', msg);
-      
-      // Garante que a mensagem tenha um ID único
-      const messageWithId: Message = {
-        ...msg,
-        id: msg.id || crypto.randomUUID(),
-        timestamp: msg.timestamp || Date.now(),
-      };
-      
-      // Evita duplicação: só adiciona se a mensagem não existir
-      const exists = messages.value.some(m => m.id === messageWithId.id);
-      if (!exists) {
-        messages.value.push(messageWithId);
+    socket.on('chat:new-message', (data: unknown) => {
+      try {
+        // Valida e normaliza a mensagem recebida
+        const message = validateAndNormalizeMessage(data);
+        
+        console.log('📨 Mensagem válida recebida:', message);
+        
+        // Evita duplicação: só adiciona se a mensagem não existir
+        const exists = messages.value.some(m => m.id === message.id);
+        if (!exists) {
+          messages.value.push(message);
+        } else {
+          console.log('⚠️  Mensagem duplicada ignorada:', message.id);
+        }
+      } catch (error) {
+        console.error('❌ Erro ao processar mensagem:', error);
+        // Não adiciona mensagem inválida ao array
+        // Pode emitir evento de erro para UI se necessário
       }
     });
 
