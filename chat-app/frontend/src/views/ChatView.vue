@@ -98,9 +98,9 @@ const { messages, isConnected, isTyping, sendMessage } = useChat(
 
 const { containerRef, scrollToBottom } = useScrollToBottom();
 
-// Auto-scroll quando novas mensagens chegarem
+// Auto-scroll quando novas mensagens chegarem (sem smooth para performance)
 watch(() => messages.value.length, () => {
-  scrollToBottom();
+  scrollToBottom(); // smooth = false (default)
 });
 
 function handleSendMessage(messageText: string) {
@@ -112,7 +112,7 @@ function handleSendMessage(messageText: string) {
     type: 'text',
     status: 'sent',
   });
-  scrollToBottom();
+  scrollToBottom(true); // smooth = true (interação do usuário)
 }
 
 function closeDialog() {

@@ -41,7 +41,14 @@ export function validateAndNormalizeMessage(data: unknown): Message {
   const parsed = IncomingMessageSchema.safeParse(data);
   
   if (!parsed.success) {
-    console.error('Erros:', parsed.error.issues);
+    console.error('❌ Erro ao validar payload da mensagem:', {
+      payload: data,
+      errors: parsed.error.issues.map(e => ({
+        path: e.path.join('.'),
+        message: e.message,
+        code: e.code,
+      })),
+    });
     throw new Error('Mensagem inválida: ' + parsed.error.issues.map((e) => e.message).join(', '));
   }
 
@@ -57,8 +64,19 @@ export function validateAndNormalizeMessage(data: unknown): Message {
   const validated = MessageSchema.safeParse(normalized);
   
   if (!validated.success) {
-    console.error('❌ Falha ao normalizar mensagem:', normalized);
-    throw new Error('Falha na normalização da mensagem');
+    console.error('❌ Falha ao normalizar mensagem:', {
+      original: data,
+      normalized,
+      errors: validated.error.issues.map(e => ({
+        path: e.path.join('.'),
+        message: e.message,
+        code: e.code,
+      })),
+    });
+    throw new Error(
+      'Falha na normalização: ' + 
+      validated.error.issues.map((e) => `${e.path.join('.')}: ${e.message}`).join(', ')
+    );
   }
 
   return validated.data;
