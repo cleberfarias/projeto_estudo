@@ -68,6 +68,8 @@ const hasText = computed(() => props.modelValue.trim().length > 0);
 function handleSubmit() {
   if (hasText.value) {
     emit('submit', props.modelValue);
+    // Limpa o campo após enviar
+    emit('update:modelValue', '');
   } else {
     emit('voice');
   }

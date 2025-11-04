@@ -78,6 +78,25 @@ jobs:
             exit 1
           fi
           
+          # Verifica se existem arquivos vazios
+          EMPTY_FILES=$(find chat-app/frontend/src -name '*.ts' -o -name '*.vue' | xargs -I {} sh -c 'test ! -s {} && echo {}' || true)
+          
+          if [ ! -z "$EMPTY_FILES" ]; then
+            echo "❌ Arquivos vazios encontrados:"
+            echo "$EMPTY_FILES"
+            exit 1
+          fi
+          
+          # Verifica typos comuns em nomes de composables
+          TYPO_FILES=$(find chat-app/frontend/src/design-system/composables -name '*Botto*' -o -name '*Scrool*' -o -name '*Mesage*' || true)
+          
+          if [ ! -z "$TYPO_FILES" ]; then
+            echo "❌ Possíveis typos em nomes de arquivos:"
+            echo "$TYPO_FILES"
+            echo "💡 Verifique: Bottom (não Botto), Scroll (não Scrool), Message (não Mesage)"
+            exit 1
+          fi
+          
           echo "✅ Nomenclatura de composables OK"
 
   check-hardcoded-values:
