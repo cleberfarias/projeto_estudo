@@ -25,7 +25,13 @@ export function useChat(socketUrl: string) {
 
     socket.on('chat:new-message', (msg: Message) => {
       console.log('📨 Nova mensagem recebida:', msg);
-      messages.value.push(msg);
+      // Ensure the message has an ID to avoid Vue rendering errors
+      const messageWithId: Message = {
+        ...msg,
+        id: msg.id || crypto.randomUUID(),
+        timestamp: msg.timestamp || Date.now(),
+      };
+      messages.value.push(messageWithId);
     });
 
     socket.on('user:typing', (data: { userId: string; isTyping: boolean }) => {
