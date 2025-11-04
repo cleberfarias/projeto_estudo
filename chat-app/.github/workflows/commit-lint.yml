@@ -1,0 +1,52 @@
+name: Commit Message Check
+
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+  check-commits:
+    name: Validate Commit Messages
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check Conventional Commits
+        run: |
+          echo "🔍 Verificando mensagens de commit..."
+          
+          # Pega todos os commits do PR
+          COMMITS=$(git log --format=%s origin/main..HEAD)
+          
+          # Padrão de conventional commits
+          PATTERN="^(feat|fix|docs|style|refactor|test|chore|perf|ci|build|revert)(\(.+\))?: .+"
+          
+          INVALID_COMMITS=""
+          
+          while IFS= read -r commit; do
+            if ! echo "$commit" | grep -qE "$PATTERN"; then
+              INVALID_COMMITS="${INVALID_COMMITS}\n  - $commit"
+            fi
+          done <<< "$COMMITS"
+          
+          if [ ! -z "$INVALID_COMMITS" ]; then
+            echo "❌ Commits que não seguem Conventional Commits:"
+            echo -e "$INVALID_COMMITS"
+            echo ""
+            echo "📖 Formato esperado:"
+            echo "   tipo(escopo opcional): descrição"
+            echo ""
+            echo "   Tipos válidos: feat, fix, docs, style, refactor, test, chore, perf, ci, build, revert"
+            echo ""
+            echo "   Exemplos:"
+            echo "   - feat: adiciona botão de upload"
+            echo "   - fix(chat): corrige scroll automático"
+            echo "   - docs: atualiza README"
+            exit 1
+          fi
+          
+          echo "✅ Todas as mensagens de commit estão corretas"

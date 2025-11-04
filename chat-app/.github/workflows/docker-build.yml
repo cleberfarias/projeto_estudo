@@ -1,0 +1,33 @@
+name: Docker Build Check
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'chat-app/backend/**'
+      - 'chat-app/frontend/**'
+      - 'chat-app/docker-compose.yml'
+      - 'chat-app/**/Dockerfile'
+
+jobs:
+  docker-build:
+    name: Build Docker Images
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Build backend image
+        working-directory: chat-app
+        run: docker compose build api
+
+      - name: Build frontend image
+        working-directory: chat-app
+        run: docker compose build web
+
+      - name: Check image sizes
+        working-directory: chat-app
+        run: |
+          echo "📦 Tamanhos das imagens Docker:"
+          docker images | grep -E "chat-app-(api|web)"
