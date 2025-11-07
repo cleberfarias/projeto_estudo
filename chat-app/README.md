@@ -1,19 +1,25 @@
 # 💬 Chat App - Aplicação de Chat em Tempo Real
 
 [![Vue 3](https://img.shields.io/badge/Vue-3.5-4FC08D?logo=vue.js)](https://vuejs.org/)
+[![Python](https://img.shields.io/badge/Python-3.11-3776AB?logo=python)](https://www.python.org/)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.115-009688?logo=fastapi)](https://fastapi.tiangolo.com/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.9-3178C6?logo=typescript)](https://www.typescriptlang.org/)
-[![Socket.IO](https://img.shields.io/badge/Socket.IO-4.8-010101?logo=socket.io)](https://socket.io/)
+[![Socket.IO](https://img.shields.io/badge/Socket.IO-5.11-010101?logo=socket.io)](https://socket.io/)
+[![MongoDB](https://img.shields.io/badge/MongoDB-7.0-47A248?logo=mongodb)](https://www.mongodb.com/)
 [![Docker](https://img.shields.io/badge/Docker-Ready-2496ED?logo=docker)](https://www.docker.com/)
 [![Vuetify](https://img.shields.io/badge/Vuetify-3.10-1867C0?logo=vuetify)](https://vuetifyjs.com/)
 
-> Uma aplicação de chat em tempo real moderna, construída com Vue 3, Node.js e Socket.IO, totalmente containerizada com Docker.
+> Uma aplicação de chat em tempo real moderna, construída com Vue 3, FastAPI (Python), Socket.IO e MongoDB, totalmente containerizada com Docker.
 
 ## ✨ Recursos
 
 - ✅ **Comunicação em Tempo Real** via WebSockets (Socket.IO)
+- ✅ **Autenticação JWT** com registro e login de usuários
+- ✅ **Persistência de Mensagens** com MongoDB (replica set)
 - ✅ **Interface Moderna** com Material Design (Vuetify)
-- ✅ **Type-Safe** com TypeScript em frontend e backend
-- ✅ **Validação de Dados** com Zod no backend
+- ✅ **Type-Safe** com TypeScript (frontend) e Python type hints (backend)
+- ✅ **Validação de Dados** com Pydantic no backend e Zod no frontend
+- ✅ **Backend Assíncrono** com FastAPI e Motor (MongoDB async driver)
 - ✅ **Docker Ready** com hot-reload para desenvolvimento
 - ✅ **Gerenciamento de Estado** com Pinia
 - ✅ **Roteamento** com Vue Router
@@ -22,7 +28,9 @@
 
 - [Docker](https://www.docker.com/) e Docker Compose (recomendado)
 - **OU**
-- [Node.js](https://nodejs.org/) 20+
+- [Python](https://www.python.org/) 3.11+ (backend)
+- [Node.js](https://nodejs.org/) 20+ (frontend)
+- [MongoDB](https://www.mongodb.com/) 7.0+ com replica set
 - npm ou yarn
 
 ## 🚀 Início Rápido
@@ -40,15 +48,25 @@ docker-compose up
 # 3. Acesse a aplicação
 # Frontend: http://localhost:5173
 # Backend:  http://localhost:3000
+# MongoDB:  localhost:27017
 ```
 
 ### Sem Docker
 
+**MongoDB (com replica set):**
+```bash
+# Inicie MongoDB com replica set
+mongod --replSet rs0
+
+# Em outro terminal, inicialize o replica set
+mongosh --eval "rs.initiate()"
+```
+
 **Backend:**
 ```bash
 cd backend
-npm install
-npm run dev
+pip install -r requirements.txt
+uvicorn main:socket_app --reload --port 3000
 ```
 
 **Frontend:**
@@ -62,45 +80,82 @@ npm run dev
 
 ```
 chat-app/
-├── backend/              # Servidor Node.js + Express + Socket.IO
-│   ├── src/
-│   │   └── index.ts     # Servidor principal
+├── backend/              # Servidor Python + FastAPI + Socket.IO
+│   ├── main.py          # Servidor principal com Socket.IO
+│   ├── models.py        # Modelos Pydantic (validação)
+│   ├── database.py      # Conexão MongoDB com Motor
+│   ├── auth.py          # Autenticação JWT
+│   ├── users.py         # Rotas de registro e login
+│   ├── requirements.txt # Dependências Python
 │   ├── Dockerfile
-│   ├── package.json
-│   └── tsconfig.json
+│   └── prisma/
+│       └── schema.prisma # Schema do banco (legado)
 ├── frontend/            # Cliente Vue 3 + Vuetify
 │   ├── src/
 │   │   ├── main.ts     # Entry point
 │   │   ├── App.vue     # Componente raiz
+│   │   ├── components/
+│   │   │   ├── TypingIndicator.vue    # Indicador "digitando..."
+│   │   │   └── DateSeparator.vue      # Separador de datas
 │   │   ├── views/
-│   │   │   └── ChatView.vue
+│   │   │   ├── ChatView.vue           # Chat principal
+│   │   │   └── LoginView.vue          # Login/Registro
+│   │   ├── stores/
+│   │   │   ├── chat.ts                # Store do chat (Pinia)
+│   │   │   └── auth.ts                # Store de autenticação
 │   │   └── design-system/
 │   │       ├── components/
+│   │       │   ├── DSChatHeader.vue   # Header do chat
+│   │       │   ├── DSChatInput.vue    # Input com typing
+│   │       │   └── DSMessageBubble.vue # Bolha de mensagem
 │   │       ├── composables/
-│   │       ├── tokens/
-│   │       └── types/
+│   │       │   ├── useChat.ts         # Lógica do chat
+│   │       │   └── useScrollToBottom.ts # Auto-scroll
+│   │       ├── tokens/                # Design tokens
+│   │       └── types/                 # TypeScript types
 │   ├── Dockerfile
 │   ├── package.json
-│   └── vite.config.ts
+│   ├── tsconfig.app.json # Config TypeScript com path alias
+│   └── vite.config.ts    # Config Vite com resolve alias
+├── mongo-init/
+│   └── init-replica.sh  # Script para inicializar replica set
 ├── docker-compose.yml   # Orquestração dos serviços
 ├── .env                 # Variáveis de ambiente
 ├── README.md           # Este arquivo
 └── DOCUMENTACAO.md     # Documentação técnica detalhada
 ```
 
-## 📡 API Socket.IO
+## 📡 API
 
-### Eventos do Cliente → Servidor
+### REST Endpoints
+
+| Método | Endpoint | Descrição | Auth |
+|--------|----------|-----------|------|
+| `GET` | `/` | Health check | Não |
+| `POST` | `/register` | Criar nova conta | Não |
+| `POST` | `/login` | Autenticar usuário | Não |
+| `GET` | `/messages` | Histórico de mensagens (paginação: `?before=timestamp&limit=30`) | Sim |
+
+### Socket.IO Events
+
+#### Cliente → Servidor
 
 | Evento | Payload | Descrição |
 |--------|---------|-----------|
-| `chat:new-message` | `{author: string, text: string}` | Envia nova mensagem |
+| `chat:send` | `{author, text, tempId?, status?, type?}` | Envia nova mensagem |
+| `chat:typing` | `{userId, author, chatId, isTyping}` | Indica que usuário está digitando |
+| `chat:read` | `{messageIds: string[]}` | Marca mensagens como lidas |
 
-### Eventos do Servidor → Cliente
+#### Servidor → Cliente
 
 | Evento | Payload | Descrição |
 |--------|---------|-----------|
-| `chat:new-message` | `{author: string, text: string}` | Broadcasting de mensagem para todos |
+| `chat:new-message` | `{id, author, text, timestamp, status, type}` | Broadcasting de nova mensagem |
+| `chat:ack` | `{tempId, id, timestamp}` | Confirma recebimento (troca tempId por id real) |
+| `chat:typing` | `{userId, author, chatId, isTyping}` | Broadcasting de status de digitação |
+| `chat:delivered` | `{messageId}` | Mensagem entregue ao destinatário |
+| `chat:read` | `{messageIds: string[]}` | Mensagens foram lidas |
+| `error` | `{message: string}` | Notificação de erro |
 
 ## 🔧 Configuração
 
@@ -109,13 +164,21 @@ chat-app/
 Edite `.env` na raiz do projeto:
 
 ```env
+# Backend
+DATABASE_URL=mongodb://mongo:27017/chatdb?replicaSet=rs0
+JWT_SECRET=seu-secret-super-seguro-aqui
+JWT_ALGORITHM=HS256
+JWT_EXPIRATION_MINUTES=43200
+
+# Frontend
 VITE_SOCKET_URL=http://localhost:3000
 ```
 
 ### Portas
 
-- **Backend:** 3000
 - **Frontend:** 5173
+- **Backend:** 3000
+- **MongoDB:** 27017
 
 Para alterar, edite `docker-compose.yml`:
 
@@ -126,57 +189,107 @@ ports:
 
 ## 📦 Scripts Disponíveis
 
-### Backend
+### Backend (Python)
 
 ```bash
-npm run dev      # Servidor com hot-reload
-npm run build    # Compilar TypeScript
-npm start        # Executar versão compilada
+uvicorn main:socket_app --reload --port 3000  # Servidor com hot-reload
+python -m pytest                              # Executar testes (se houver)
 ```
 
-### Frontend
+### Frontend (Vue/TypeScript)
 
 ```bash
 npm run dev      # Dev server Vite com hot-reload
 npm run build    # Build para produção
 npm run preview  # Preview da build
+npm run lint     # Verificar código
+```
+
+### Docker
+
+```bash
+docker-compose up              # Inicia todos os serviços
+docker-compose up -d           # Inicia em background
+docker-compose down            # Para os serviços
+docker-compose down -v         # Para e remove volumes
+docker-compose logs -f backend # Logs do backend em tempo real
+docker-compose restart backend # Reinicia apenas o backend
 ```
 
 ## 🎨 Tecnologias Utilizadas
 
 ### Frontend
-- **Vue 3** - Framework progressivo
+- **Vue 3** - Framework progressivo (Composition API)
 - **TypeScript** - Type safety
-- **Vuetify** - Material Design UI
-- **Pinia** - State management
-- **Vue Router** - Roteamento
+- **Vuetify 3** - Material Design UI
+- **Pinia** - State management oficial
+- **Vue Router** - Roteamento SPA
 - **Socket.IO Client** - WebSocket client
-- **Vite** - Build tool
+- **Zod** - Validação de schemas
+- **Vite** - Build tool ultra-rápido
 
 ### Backend
-- **Node.js** - Runtime JavaScript
-- **Express** - Framework web
-- **Socket.IO** - WebSocket server
-- **TypeScript** - Type safety
-- **Zod** - Schema validation
-- **CORS** - Cross-origin support
+- **Python 3.11** - Linguagem de programação
+- **FastAPI** - Framework web assíncrono moderno
+- **python-socketio** - WebSocket server
+- **Motor** - Driver MongoDB assíncrono
+- **Pydantic** - Validação de dados com type hints
+- **PyJWT** - Geração e validação de tokens JWT
+- **Uvicorn** - Servidor ASGI de alto desempenho
+- **Passlib + bcrypt** - Hashing seguro de senhas
+
+### Database
+- **MongoDB 7.0** - Banco NoSQL orientado a documentos
+- **Replica Set** - Alta disponibilidade e oplog para change streams
 
 ### DevOps
 - **Docker** - Containerização
-- **Docker Compose** - Orquestração
+- **Docker Compose** - Orquestração multi-container
 
 ## 🐛 Troubleshooting
 
+### MongoDB não inicia / Erro de replica set
+
+```bash
+# Remova volumes e reinicie
+docker-compose down -v
+docker-compose up mongo -d
+
+# Aguarde 10 segundos e verifique logs
+docker-compose logs mongo
+
+# Se necessário, reinicialize replica set
+docker exec -it chat-app-mongo-1 mongosh --eval "rs.initiate()"
+```
+
 ### Mensagens não são recebidas
 
-Verifique se os eventos Socket.IO estão sincronizados entre backend e frontend. O evento deve ser `'chat:new-message'` em ambos.
+1. Verifique se está autenticado (token JWT válido)
+2. Confirme eventos Socket.IO: cliente envia `chat:send`, servidor emite `chat:new-message`
+3. Verifique logs do backend: `docker-compose logs -f backend`
+
+### Erro de autenticação JWT
+
+```bash
+# Verifique se JWT_SECRET está definido
+docker-compose exec backend env | grep JWT
+
+# Limpe token no localStorage do navegador
+# Abra DevTools > Application > Local Storage > Clear
+```
 
 ### CORS Error
 
-Certifique-se que o CORS está habilitado no backend (`backend/src/index.ts`):
+CORS já está configurado para aceitar qualquer origem (`*`). Para produção, altere em `backend/main.py`:
 
-```typescript
-app.use(cors())
+```python
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["https://seu-dominio.com"],  # Altere aqui
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 ```
 
 ### Containers não iniciam
@@ -198,8 +311,19 @@ Verifique se os volumes estão configurados corretamente no `docker-compose.yml`
 
 ```yaml
 volumes:
-  - ./backend:/app
-  - /app/node_modules
+  - ./backend:/app          # Código do backend
+  - ./frontend:/app         # Código do frontend
+  - /app/node_modules       # Preserva node_modules do container
+```
+
+### Python packages não encontrados
+
+```bash
+# Rebuilde a imagem do backend
+docker-compose build backend
+
+# Ou instale manualmente no container
+docker-compose exec backend pip install -r requirements.txt
 ```
 
 ## 📚 Documentação
@@ -216,31 +340,78 @@ Para documentação técnica detalhada linha por linha, consulte [`DOCUMENTACAO.
 
 ### Preparação para Produção
 
-1. Configure `VITE_SOCKET_URL` com URL do backend em produção
-2. Ative HTTPS (obrigatório para WebSockets seguros)
-3. Configure CORS para aceitar apenas domínios autorizados:
+1. **Configure variáveis de ambiente:**
+   ```env
+   # Backend
+   DATABASE_URL=mongodb+srv://user:pass@cluster.mongodb.net/chatdb?retryWrites=true
+   JWT_SECRET=GERE_UM_SECRET_FORTE_AQUI_64_CARACTERES_MINIMO
+   JWT_ALGORITHM=HS256
+   JWT_EXPIRATION_MINUTES=43200
+   
+   # Frontend
+   VITE_SOCKET_URL=https://api.seu-dominio.com
+   ```
 
-```typescript
-const io = new Server(server, {
-  cors: {
-    origin: 'https://seu-dominio.com',
-    methods: ['GET', 'POST']
-  }
-})
-```
+2. **Ative HTTPS** (obrigatório para WebSockets seguros - wss://)
+
+3. **Configure CORS** para aceitar apenas domínios autorizados em `backend/main.py`:
+   ```python
+   app.add_middleware(
+       CORSMiddleware,
+       allow_origins=[
+           "https://seu-dominio.com",
+           "https://www.seu-dominio.com"
+       ],
+       allow_credentials=True,
+       allow_methods=["*"],
+       allow_headers=["*"],
+   )
+   ```
+
+4. **MongoDB Atlas** (recomendado para produção):
+   - Crie cluster gratuito em [mongodb.com/atlas](https://www.mongodb.com/atlas)
+   - Configure replica set automaticamente
+   - Use connection string do Atlas no `DATABASE_URL`
+
+5. **Build do frontend:**
+   ```bash
+   cd frontend
+   npm run build
+   # Deploy pasta dist/ para Vercel/Netlify/S3
+   ```
+
+6. **Backend em produção:**
+   ```bash
+   pip install -r requirements.txt
+   uvicorn main:socket_app --host 0.0.0.0 --port 3000
+   ```
 
 ## 🛣️ Roadmap
 
-- [ ] Persistência de mensagens (MongoDB/PostgreSQL)
-- [ ] Salas de chat múltiplas
-- [ ] Autenticação de usuários (JWT)
+### ✅ Implementado
+- [x] Persistência de mensagens no MongoDB
+- [x] Autenticação JWT (registro + login)
+- [x] Histórico de mensagens com paginação
+- [x] Indicador de digitação ("Digitando...")
+- [x] Confirmações de status (⏳ Enviando, ✓ Enviada, ✓✓ Lida)
+- [x] Auto-scroll inteligente
+- [x] Agrupamento de mensagens por data e autor
+- [x] Separadores de data contextuais
+- [x] Optimistic UI com retry/backoff
+- [x] Backend migrado para Python/FastAPI
+
+### 🚧 Em Desenvolvimento
+- [ ] Salas de chat múltiplas (rooms)
+- [ ] Status online/offline de usuários
 - [ ] Upload de imagens/arquivos
-- [ ] Indicador de digitação
-- [ ] Status online/offline
-- [ ] Histórico de mensagens
+- [ ] Reações a mensagens (emoji)
+- [ ] Busca de mensagens
 - [ ] Notificações push
+- [ ] Modo escuro/claro
 - [ ] Testes unitários e E2E
 - [ ] CI/CD Pipeline
+- [ ] Rate limiting e throttling
+- [ ] Mensagens criptografadas (E2E encryption)
 
 ## 🤝 Contribuindo
 
@@ -273,8 +444,18 @@ Este projeto é um projeto de estudo e está disponível sob a licença ISC.
 
 ---
 
+## 📖 Histórico de Aulas
+
+- **TECH-01:** Validação Zod para mensagens Socket.IO
+- **TECH-02:** Persistência MongoDB + carregamento de histórico
+- **TECH-02 (refactor):** Migração backend Node.js → Python/FastAPI
+- **TECH-03:** Sistema completo de autenticação JWT
+- **TECH-04:** UX avançada (auto-scroll, typing, status, grouping, pagination, optimistic UI)
+
+---
+
 ⭐️ Se este projeto foi útil para seus estudos, considere dar uma estrela!
 
-**Status:** 🚧 Em desenvolvimento  
+**Status:** � Funcional - Em evolução constante  
 **Criado em:** Novembro de 2025  
-**Última atualização:** Novembro de 2025
+**Última atualização:** Novembro de 2025 (TECH-04)
