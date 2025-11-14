@@ -23,3 +23,15 @@ model Message {
   
   @@map("messages")
 }
+
+model Automation {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  name      String
+  type      String   // "cron" ou "keyword"
+  spec      Json     // { "cron": "0 9 * * *" } ou { "keyword": "oi" }
+  payload   Json     // { "text": "Bom dia, time!" }
+  enabled   Boolean  @default(true)
+  createdAt DateTime @default(now())
+  
+  @@map("automations")
+}
