@@ -1,13 +1,16 @@
 import socketio
-from fastapi import FastAPI, Query, HTTPException
+from fastapi import FastAPI, Query, HTTPException, APIRouter
 from fastapi.middleware.cors import CORSMiddleware
-from datetime import datetime
-from database import messages_collection
+from datetime import datetime, timezone
+from database import messages_collection, db
 from models import MessageCreate, MessageResponse
 from bson import ObjectId
 from typing import Optional
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from storage import validate_upload, new_object_key, presign_put, presign_get, S3_BUCKET
+from bots.core import is_command, run_command
+from bots.automations import start_scheduler, load_and_schedule_all, handle_keyword_if_matches
+from bots.ai_bot import ask_chatgpt, is_ai_question, clean_bot_mention
 
 # FastAPI app
 app = FastAPI(title="Chat API")
@@ -36,6 +39,86 @@ try:
     print("✅ Rotas de autenticação carregadas")
 except ImportError:
     print("⚠️  Arquivo users.py não encontrado - autenticação não disponível")
+
+# Router de automações
+automations_router = APIRouter(prefix="/automations", tags=["automations"])
+automations_col = db.automations
+
+
+class AutomationIn(BaseModel):
+    """Schema para criação de automações"""
+    name: str
+    type: str  # "cron" | "keyword"
+    spec: dict  # {"cron": "0 9 * * *"} ou {"keyword": "oi"}
+    payload: dict  # {"text": "Bom dia!"}
+    enabled: bool = True
+
+
+@automations_router.post("")
+async def create_automation(body: AutomationIn):
+    """Cria uma nova automação"""
+    doc = body.model_dump()
+    doc["createdAt"] = datetime.now(timezone.utc)
+    result = await automations_col.insert_one(doc)
+    
+    # Reprograma cron jobs
+    await load_and_schedule_all(sio.emit)
+    
+    return {"id": str(result.inserted_id), "message": "Automação criada com sucesso"}
+
+
+@automations_router.get("")
+async def list_automations():
+    """Lista todas as automações"""
+    automations = []
+    async for automation in automations_col.find():
+        automation["id"] = str(automation["_id"])
+        del automation["_id"]
+        automations.append(automation)
+    return automations
+
+
+@automations_router.patch("/{id}/toggle")
+async def toggle_automation(id: str, enabled: bool = Query(...)):
+    """Ativa ou desativa uma automação"""
+    if not ObjectId.is_valid(id):
+        raise HTTPException(400, "ID inválido")
+    
+    _id = ObjectId(id)
+    result = await automations_col.update_one(
+        {"_id": _id},
+        {"$set": {"enabled": enabled}}
+    )
+    
+    if result.matched_count == 0:
+        raise HTTPException(404, "Automação não encontrada")
+    
+    # Reprograma cron jobs
+    await load_and_schedule_all(sio.emit)
+    
+    return {"ok": True, "message": f"Automação {'ativada' if enabled else 'desativada'}"}
+
+
+@automations_router.delete("/{id}")
+async def delete_automation(id: str):
+    """Remove uma automação"""
+    if not ObjectId.is_valid(id):
+        raise HTTPException(400, "ID inválido")
+    
+    _id = ObjectId(id)
+    result = await automations_col.delete_one({"_id": _id})
+    
+    if result.deleted_count == 0:
+        raise HTTPException(404, "Automação não encontrada")
+    
+    # Reprograma cron jobs
+    await load_and_schedule_all(sio.emit)
+    
+    return {"ok": True, "message": "Automação removida com sucesso"}
+
+
+# Registra router de automações
+app.include_router(automations_router)
 
 # Wrap com Socket.IO
 socket_app = socketio.ASGIApp(sio, app)
@@ -156,7 +239,8 @@ async def handle_typing(sid, data):
         
 @sio.on("chat:send")
 async def handle_chat_send(sid, data):
-    """Recebe mensagem do cliente, salva no MongoDB e broadcast para todos"""
+    """Recebe mensagem do cliente, processa comandos/automações, salva no MongoDB e broadcast para todos"""
+    from datetime import timezone
     try:
         print(f"📨 Mensagem recebida de {sid}: {data}")
         
@@ -164,21 +248,62 @@ async def handle_chat_send(sid, data):
         environ = sio.get_environ(sid)
         user_id = environ.get("user_id", "anonymous")
         
-        # captura tempId do cliente
-        
+        # Captura tempId do cliente
         temp_id = data.get("tempId")
         
+        # Captura texto e autor
+        author = data.get("author", "")
+        text = data.get("text", "").strip()
+        
+        # 1) COMANDOS (ex: /help, /echo, /time, /ai)
+        if is_command(text):
+            # Comando especial /ai precisa ser async
+            if text.lower().startswith("/ai "):
+                question = text[4:].strip()
+                if question:
+                    from bots.automations import publish_message
+                    # Envia indicador de digitação
+                    await sio.emit("chat:typing", {
+                        "author": "Bot",
+                        "isTyping": True
+                    })
+                    
+                    # Processa com ChatGPT
+                    ai_response = await ask_chatgpt(question)
+                    
+                    # Remove indicador de digitação
+                    await sio.emit("chat:typing", {
+                        "author": "Bot",
+                        "isTyping": False
+                    })
+                    
+                    # Publica resposta
+                    await publish_message(sio.emit, author="Bot 🤖", text=ai_response)
+                else:
+                    from bots.automations import publish_message
+                    await publish_message(sio.emit, author="Bot", text="💭 Use: /ai <sua pergunta>")
+                return
+            
+            # Outros comandos síncronos
+            reply = run_command(text)
+            if reply:
+                from bots.automations import publish_message
+                await publish_message(sio.emit, author="Bot", text=reply)
+            return
+        
+        # 2) PERSISTIR MENSAGEM NORMAL
         # Validação com Pydantic
         message_create = MessageCreate(**data)
         
         # Cria documento para MongoDB
+        now = datetime.now(timezone.utc)
         doc = {
             "author": message_create.author,
             "text": message_create.text,
             "status": message_create.status,
             "type": message_create.type,
             "userId": user_id,  # Adiciona ID do usuário autenticado
-            "createdAt": datetime.utcnow()
+            "createdAt": now
         }
         
         # Insere no MongoDB
@@ -201,16 +326,49 @@ async def handle_chat_send(sid, data):
             response["attachment"] = doc["attachment"]
             response["url"] = presign_get(doc["attachment"]["key"])
         
-        # 1. envia ACK para o rementente(optmistic UI)
-        await sio.emit("chat:ack", {"tempId": temp_id, "id": message_id, "status": "sent", "timestamp": response["timestamp"]}, room=sid)
+        # 1. Envia ACK para o remetente (optimistic UI)
+        await sio.emit("chat:ack", {
+            "tempId": temp_id,
+            "id": message_id,
+            "status": "sent",
+            "timestamp": response["timestamp"]
+        }, room=sid)
         print(f"📤 ACK enviado para {sid} (tempId: {temp_id})")
         
-        # 2. envia broadcast para todos os clientes
+        # 2. Envia broadcast para todos os clientes
         await sio.emit("chat:new-message", response, skip_sid=sid)
         
         # 3. Emite 'delivered' para todos
         await sio.emit("chat:delivered", {"id": message_id})
         print(f"📬 Evento 'delivered' emitido para mensagem {message_id}")
+        
+        # 4) KEYWORD AUTOMATIONS (ex: "oi" -> resposta automática)
+        await handle_keyword_if_matches(sio.emit, text)
+        
+        # 5) BOT DE IA (ex: "@bot qual a capital do Brasil?")
+        if is_ai_question(text):
+            from bots.automations import publish_message
+            
+            # Limpa menção ao bot
+            clean_text = clean_bot_mention(text)
+            
+            # Envia indicador de digitação
+            await sio.emit("chat:typing", {
+                "author": "Bot",
+                "isTyping": True
+            })
+            
+            # Processa com ChatGPT
+            ai_response = await ask_chatgpt(clean_text)
+            
+            # Remove indicador de digitação
+            await sio.emit("chat:typing", {
+                "author": "Bot",
+                "isTyping": False
+            })
+            
+            # Publica resposta
+            await publish_message(sio.emit, author="Bot 🤖", text=ai_response)
         
     except Exception as e:
         print(f"❌ Erro ao processar mensagem: {e}")
@@ -305,3 +463,12 @@ async def confirm_upload(body: ConfirmUploadIn):
     }
     await sio.emit("chat:new-message", msg)
     return {"ok": True, "message": msg}
+
+
+
+@app.on_event("startup")
+async def _on_startup():
+    """Inicializa scheduler e carrega automações na inicialização do servidor"""
+    start_scheduler()
+    await load_and_schedule_all(sio.emit)
+    print("✅ Scheduler iniciado e automações carregadas")
