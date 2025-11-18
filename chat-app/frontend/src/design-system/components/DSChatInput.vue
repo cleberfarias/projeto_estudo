@@ -34,7 +34,7 @@
         rounded
         bg-color="white"
         class="flex-grow-1"
-        @keyup.enter.exact.prevent="handleSubmit"
+        @keyup.enter.exact.prevent="handleEnterKey"
         :disabled="uploading"
       />
       
@@ -121,23 +121,37 @@ watch(() => props.modelValue, (newValue) => {
   }
 });
 
+// Função chamada ao pressionar Enter - APENAS envia se tiver texto
+function handleEnterKey() {
+  if (hasText.value && !props.uploading) {
+    sendMessage();
+  }
+  // Se não tiver texto, não faz nada (não dispara voice)
+}
+
+// Função chamada ao clicar no botão - pode enviar ou gravar voz
 function handleSubmit() {
   if (hasText.value && !props.uploading) {
-    // Para o indicador de digitação
-    if (isTyping.value) {
-      isTyping.value = false;
-      emit('typing', false);
-    }
-    if (typingTimeout.value) {
-      clearTimeout(typingTimeout.value);
-    }
-    
-    emit('submit', props.modelValue);
-    // Limpa o campo após enviar
-    emit('update:modelValue', '');
+    sendMessage();
   } else if (!hasText.value && !props.uploading) {
     emit('voice');
   }
+}
+
+// Função auxiliar para enviar mensagem
+function sendMessage() {
+  // Para o indicador de digitação
+  if (isTyping.value) {
+    isTyping.value = false;
+    emit('typing', false);
+  }
+  if (typingTimeout.value) {
+    clearTimeout(typingTimeout.value);
+  }
+  
+  emit('submit', props.modelValue);
+  // Limpa o campo após enviar
+  emit('update:modelValue', '');
 }
 </script>
 
