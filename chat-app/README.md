@@ -28,6 +28,9 @@
 - ✅ **Docker Ready** com hot-reload para desenvolvimento
 - ✅ **Gerenciamento de Estado** com Pinia
 - ✅ **Roteamento** com Vue Router
+- ✅ **Sistema de Agentes IA** com 5 especialistas pré-configurados
+- ✅ **Bots Personalizados** com credenciais OpenAI individuais
+- ✅ **IA Conversacional** integrada ao chat (@guru, @advogado, @vendedor, @medico, @psicologo)
 
 ## 📋 Pré-requisitos
 
@@ -88,14 +91,19 @@ npm run dev
 ```
 chat-app/
 ├── backend/              # Servidor Python + FastAPI + Socket.IO
-│   ├── main.py          # Servidor principal com Socket.IO + rotas upload
+│   ├── main.py          # Servidor principal com Socket.IO + rotas upload + agentes
 │   ├── models.py        # Modelos Pydantic (validação + AttachmentInfo)
 │   ├── database.py      # Conexão MongoDB com Motor
 │   ├── auth.py          # Autenticação JWT
 │   ├── users.py         # Rotas de registro e login
 │   ├── storage.py       # Integração MinIO/S3 + presigned URLs
-│   ├── requirements.txt # Dependências Python (boto3, python-multipart)
+│   ├── requirements.txt # Dependências Python (boto3, python-multipart, httpx)
 │   ├── Dockerfile
+│   ├── bots/
+│   │   ├── agents.py    # Sistema de agentes IA especializados (5 agentes + custom)
+│   │   ├── ai_bot.py    # Bot Guru com OpenAI
+│   │   ├── core.py      # Sistema de comandos
+│   │   └── automations.py # Automações agendadas
 │   └── prisma/
 │       └── schema.prisma # Schema do banco (legado)
 ├── frontend/            # Cliente Vue 3 + Vuetify
@@ -106,6 +114,7 @@ chat-app/
 │   │   │   ├── TypingIndicator.vue    # Indicador "digitando..."
 │   │   │   ├── DateSeparator.vue      # Separador de datas
 │   │   │   ├── AttachmentMenu.vue     # Menu anexos WhatsApp
+│   │   │   ├── CustomBotCreator.vue   # Modal criação bots IA
 │   │   │   └── Uploader.vue           # Upload drag-and-drop
 │   │   ├── composables/
 │   │   │   └── useUpload.ts           # Lógica de upload com progresso
@@ -141,6 +150,59 @@ chat-app/
 └── DOCUMENTACAO.md     # Documentação técnica detalhada
 ```
 
+## 🤖 Agentes IA Especializados
+
+O sistema inclui **5 agentes IA** pré-configurados com personalidades e expertises específicas:
+
+### Agentes Disponíveis
+
+| Agente | Menção | Emoji | Especialidades |
+|--------|--------|-------|----------------|
+| **Guru** | `@guru` | 🧠 | Programação, Arquitetura, Debugging, Code Review |
+| **Dr. Advocatus** | `@advogado` | ⚖️ | Direito Civil/Trabalhista/Consumidor, Contratos |
+| **Sales Pro** | `@vendedor` | 💼 | Prospecção B2B, Técnicas de Fechamento, Objeções |
+| **Dr. Health** | `@medico` | 🩺 | Educação em Saúde, Primeiros Socorros, Prevenção |
+| **MindCare** | `@psicologo` | 🧘 | Gestão de Ansiedade, Mindfulness, Autocuidado |
+
+### Como Usar
+
+```bash
+# Iniciar conversa com agente
+@advogado preciso de ajuda com rescisão de contrato
+
+# Ver comandos disponíveis
+@vendedor /ajuda
+
+# Limpar histórico do agente
+@guru /limpar
+
+# Ver contexto da conversa
+@medico /contexto
+
+# Listar todos os agentes
+/agentes
+```
+
+### Criando Bots Personalizados
+
+1. Clique no botão roxo **+** (canto inferior direito)
+2. Preencha o formulário:
+   - **Nome**: Nome único do bot
+   - **Emoji**: Ícone representativo (opcional)
+   - **OpenAI API Key**: Sua chave da OpenAI (sk-proj-...)
+   - **Organization ID**: ID da organização (opcional)
+   - **Prompt**: Personalidade e comportamento do bot
+   - **Especialidades**: Até 5 áreas de expertise
+3. Clique em **Criar Bot**
+4. Use com `@nomedoeubot sua pergunta`
+
+**Recursos:**
+- ✅ Credenciais OpenAI individuais por bot
+- ✅ Upload de arquivo .txt/.md para prompts longos
+- ✅ Histórico de conversa independente (10 mensagens)
+- ✅ Comandos universais (/ajuda, /limpar, /contexto)
+- ✅ Preview ao vivo do bot
+
 ## 📡 API
 
 ### REST Endpoints
@@ -153,6 +215,9 @@ chat-app/
 | `GET` | `/messages` | Histórico de mensagens (paginação: `?before=timestamp&limit=30`) | Sim |
 | `POST` | `/uploads/grant` | Gera URL pré-assinada para upload S3 | Não |
 | `POST` | `/uploads/confirm` | Confirma upload e cria mensagem com anexo | Não |
+| `POST` | `/custom-bots` | Criar bot personalizado com credenciais OpenAI | Sim |
+| `GET` | `/custom-bots` | Listar bots personalizados do usuário | Sim |
+| `DELETE` | `/custom-bots/{bot_key}` | Deletar bot personalizado | Sim |
 
 ### Socket.IO Events
 
@@ -190,6 +255,10 @@ JWT_EXPIRATION_MINUTES=43200
 
 # Frontend
 VITE_SOCKET_URL=http://localhost:3000
+
+# OpenAI (para agentes IA)
+OPENAI_API_KEY=sk-proj-...
+OPENAI_MODEL=gpt-3.5-turbo
 
 # MinIO / S3
 S3_ENDPOINT=http://minio:9000
@@ -442,6 +511,18 @@ Para documentação técnica detalhada linha por linha, consulte [`DOCUMENTACAO.
 - [x] Design responsivo mobile-first
 - [x] Breakpoints xs/sm/md/lg/xl
 - [x] Clip icon rotacionado 135° (WhatsApp style)
+- [x] **Sistema de Agentes IA Especializados**
+  - [x] 5 agentes pré-configurados (@guru, @advogado, @vendedor, @medico, @psicologo)
+  - [x] Histórico de conversa por usuário (10 mensagens)
+  - [x] Comandos específicos por agente (/ajuda, /limpar, /contexto)
+  - [x] Integração com OpenAI GPT-3.5-turbo
+- [x] **Criação de Bots Personalizados**
+  - [x] Modal completo com formulário validado
+  - [x] Upload de arquivo .txt/.md para prompts
+  - [x] Credenciais OpenAI individuais por bot
+  - [x] Suporte para Organization ID
+  - [x] API REST para CRUD de bots
+  - [x] Persistência em localStorage + backend
 
 ### 🚧 Em Desenvolvimento
 - [ ] Salas de chat múltiplas (rooms)
@@ -458,6 +539,11 @@ Para documentação técnica detalhada linha por linha, consulte [`DOCUMENTACAO.
 - [ ] Rate limiting e throttling
 - [ ] Antivírus para arquivos enviados
 - [ ] Mensagens criptografadas (E2E encryption)
+- [ ] Persistência de bots personalizados em MongoDB
+- [ ] Marketplace de bots (compartilhar com comunidade)
+- [ ] Templates de prompts pré-configurados
+- [ ] Edição de bots existentes
+- [ ] Analytics de uso dos agentes IA
 
 ## 🤝 Contribuindo
 
@@ -498,6 +584,7 @@ Este projeto é um projeto de estudo e está disponível sob a licença ISC.
 - **TECH-03:** Sistema completo de autenticação JWT
 - **TECH-04:** UX avançada (auto-scroll, typing, status, grouping, pagination, optimistic UI)
 - **TECH-05:** Upload de arquivos/imagens + MinIO/S3 + Design responsivo mobile-first
+- **TECH-06:** Sistema de Agentes IA Especializados + Bots Personalizados com OpenAI
 
 ---
 
@@ -505,4 +592,4 @@ Este projeto é um projeto de estudo e está disponível sob a licença ISC.
 
 **Status:** 🚀 Funcional - Em evolução constante  
 **Criado em:** Novembro de 2025  
-**Última atualização:** Novembro de 2025 (TECH-05)
+**Última atualização:** Novembro de 2025 (TECH-06)
