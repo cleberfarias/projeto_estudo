@@ -8,8 +8,27 @@
 [![MongoDB](https://img.shields.io/badge/MongoDB-7.0-47A248?logo=mongodb)](https://www.mongodb.com/)
 [![Docker](https://img.shields.io/badge/Docker-Ready-2496ED?logo=docker)](https://www.docker.com/)
 [![Vuetify](https://img.shields.io/badge/Vuetify-3.10-1867C0?logo=vuetify)](https://vuetifyjs.com/)
+[![License](https://img.shields.io/badge/License-AGPL--3.0-blue.svg)](LICENSE)
 
 > Uma aplicação de chat em tempo real moderna, construída com Vue 3, FastAPI (Python), Socket.IO e MongoDB, totalmente containerizada com Docker.
+
+## 📜 Licença e Proteção
+
+**Copyright © 2025 Cleber Farias. Todos os direitos reservados.**
+
+Este projeto é licenciado sob **AGPL-3.0** com termos adicionais de proteção:
+
+- ✅ **Open-source** para uso pessoal e educacional
+- ✅ **Copyleft forte**: Modificações devem ser compartilhadas sob AGPL-3.0
+- ✅ **Network use**: SaaS/hospedagem requer disponibilização do código-fonte
+- ⚠️ **Trademark**: Nome "Chat App" e marcas são protegidos (veja [TRADEMARK.md](TRADEMARK.md))
+- 💼 **Licença comercial** disponível para uso empresarial em larga escala
+
+**Leia mais:**
+- [LICENSE](LICENSE) - Licença AGPL-3.0 completa
+- [CONTRIBUTORS.md](CONTRIBUTORS.md) - Acordo de contribuição (CLA)
+- [PATENTS.md](PATENTS.md) - Propriedade intelectual e patentes
+- [TRADEMARK.md](TRADEMARK.md) - Diretrizes de uso de marca
 
 ## ✨ Recursos
 
@@ -561,9 +580,37 @@ Este projeto é um projeto de estudo e está disponível sob a licença ISC.
 
 ## 👨‍💻 Autor
 
-**Cleber Farias**
+**Cleber Farias** - Creator & Copyright Holder
 
 - GitHub: [@cleberfarias](https://github.com/cleberfarias)
+- Email: cleberfarias@gmail.com
+- Licenciamento comercial: Entre em contato para uso empresarial
+
+## 🤝 Contribuindo
+
+Contribuições são bem-vindas! Por favor, leia:
+
+1. [CONTRIBUTORS.md](CONTRIBUTORS.md) - CLA e processo de contribuição
+2. [COMMIT_INSTRUCTIONS.md](COMMIT_INSTRUCTIONS.md) - Padrões de commit
+3. [CONTRIBUTING.md](CONTRIBUTING.md) - Guia completo de contribuição
+
+**Ao submeter um Pull Request, você aceita o CLA e a licença AGPL-3.0.**
+
+## 🛡️ Segurança
+
+Para relatar vulnerabilidades de segurança:
+- **NÃO** abra issues públicos
+- Envie email para: cleberfarias@gmail.com
+- Assunto: "Security Vulnerability - Chat App"
+- Responderemos em até 48 horas
+
+## 📄 Documentação Legal
+
+- [LICENSE](LICENSE) - Licença AGPL-3.0 completa
+- [CONTRIBUTORS.md](CONTRIBUTORS.md) - Acordo de contribuição
+- [PATENTS.md](PATENTS.md) - Propriedade intelectual
+- [TRADEMARK.md](TRADEMARK.md) - Uso de marcas
+- [SECURITY_CLEANUP.md](SECURITY_CLEANUP.md) - Histórico de segurança
 
 ## 🙏 Agradecimentos
 
@@ -572,7 +619,14 @@ Este projeto é um projeto de estudo e está disponível sob a licença ISC.
 - [Vuetify](https://vuetifyjs.com/) - Componentes lindos
 - [TypeScript](https://www.typescriptlang.org/) - Type safety
 - [Docker](https://www.docker.com/) - Containerização
+- [OpenAI](https://openai.com/) - GPT API
 - Comunidade open source 💚
+
+## ⚠️ Disclaimer
+
+Este software é fornecido "como está", sem garantias de qualquer tipo. Veja [LICENSE](LICENSE) para detalhes completos.
+
+O uso deste software para integração com OpenAI está sujeito aos [Termos de Uso da OpenAI](https://openai.com/policies/terms-of-use/).
 
 ---
 
@@ -585,11 +639,14 @@ Este projeto é um projeto de estudo e está disponível sob a licença ISC.
 - **TECH-04:** UX avançada (auto-scroll, typing, status, grouping, pagination, optimistic UI)
 - **TECH-05:** Upload de arquivos/imagens + MinIO/S3 + Design responsivo mobile-first
 - **TECH-06:** Sistema de Agentes IA Especializados + Bots Personalizados com OpenAI
+- **TECH-07:** Proteção máxima - AGPL-3.0 + CLA + Patents + Trademark
 
 ---
 
 ⭐️ Se este projeto foi útil para seus estudos, considere dar uma estrela!
 
 **Status:** 🚀 Funcional - Em evolução constante  
+**Licença:** AGPL-3.0 (com termos adicionais)  
 **Criado em:** Novembro de 2025  
-**Última atualização:** Novembro de 2025 (TECH-06)
+**Última atualização:** 18 de novembro de 2025 (TECH-07)  
+**Copyright:** © 2025 Cleber Farias. Todos os direitos reservados.
