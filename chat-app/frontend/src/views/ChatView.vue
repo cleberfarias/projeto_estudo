@@ -331,6 +331,36 @@
       @bot-created="handleBotCreated"
     />
 
+    <!-- Agent panes (chat-in-chat) -->
+    <div class="agent-panes-wrapper" v-if="agentTabs.length">
+      <div class="agent-panes-tabs">
+        <div
+          v-for="tab in agentTabs"
+          :key="tab.key"
+          :class="['agent-tab', { active: tab.key === activeAgentKey }]"
+          @click="activeAgentKey = tab.key"
+        >
+          <span class="tab-emoji">{{ tab.emoji }}</span>
+          <span class="tab-title">{{ tab.title }}</span>
+          <v-btn icon size="x-small" variant="text" @click.stop="closeAgentTab(tab.key)">
+            <v-icon size="14">mdi-close</v-icon>
+          </v-btn>
+        </div>
+      </div>
+
+      <div class="agent-panes-content">
+        <AgentChatPane
+          v-for="tab in agentTabs"
+          :key="tab.key + '-pane'"
+          v-show="tab.key === activeAgentKey"
+          :agentKey="tab.key"
+          :title="tab.title"
+          :emoji="tab.emoji"
+          @close="closeAgentTab"
+        />
+      </div>
+    </div>
+
     <!-- DIALOG PARA NOME DO USUÁRIO -->
     <v-dialog v-model="showNameDialog" max-width="400" persistent>
       <v-card>
@@ -374,6 +404,7 @@ import AttachmentMenu from '../components/AttachmentMenu.vue';
 import VoiceRecorder from '../components/VoiceRecorder.vue';
 import CustomBotCreator from '../components/CustomBotCreator.vue';
 import WppConnectDialog from '../components/WppConnectDialog.vue';
+import AgentChatPane from '../components/AgentChatPane.vue';
 import { useChatStore } from '../stores/chat';
 import { useAuthStore } from '../stores/auth';
 import { useContactsStore } from '../stores/contacts';
@@ -411,6 +442,36 @@ const uploadingFile = ref(false);
 const uploadProgress = ref(0);
 
 const { containerRef, scrollToBottom } = useScrollToBottom();
+// 🆕 Agent panes state (chat-in-chat)
+const agentTabs = ref<Array<{ key: string; title: string; emoji?: string }>>([]);
+const activeAgentKey = ref<string | null>(null);
+const previousContactId = ref<string | null>(null);
+
+function openAgentChat(agentKey: string, title: string, emoji?: string) {
+  // Se já existe a aba, apenas ativa
+  const exists = agentTabs.value.find(t => t.key === agentKey);
+  if (!exists) {
+    agentTabs.value.push({ key: agentKey, title, emoji });
+  }
+  activeAgentKey.value = agentKey;
+
+  // Evita que mensagens do agente poluam o chat principal
+  previousContactId.value = chatStore.currentContactId;
+  chatStore.currentContactId = `__agent__${agentKey}`;
+}
+
+function closeAgentTab(agentKey: string) {
+  agentTabs.value = agentTabs.value.filter(t => t.key !== agentKey);
+  if (activeAgentKey.value === agentKey) {
+    activeAgentKey.value = agentTabs.value.length ? agentTabs.value[agentTabs.value.length - 1].key : null;
+  }
+
+  // Restaura contactId anterior se não houver abas abertas
+  if (!agentTabs.value.length) {
+    chatStore.currentContactId = previousContactId.value || null;
+    previousContactId.value = null;
+  }
+}
 
 // Carrega autenticação do localStorage
 authStore.load();
@@ -616,18 +677,28 @@ function handleSendMessage(messageText: string) {
 
 // 🧠 FUNÇÃO: Insere comando do Guru no input e envia automaticamente
 function insertCommand(command: string) {
-  // Se for menção de agente (começa com @), coloca no input para usuário completar
-  if (command.startsWith('@') && command.includes(' ')) {
-    text.value = command;
-    // Foca no input para usuário digitar
-    nextTick(() => {
-      const inputEl = document.querySelector<HTMLInputElement>('.v-field__input input');
-      if (inputEl) inputEl.focus();
-    });
-  } else {
-    // Comandos normais: envia diretamente
-    handleSendMessage(command);
+  // Se for menção de agente (começa com @), abre aba do agente (chat-in-chat)
+  if (command.startsWith('@')) {
+    const agentKey = command.replace('@', '').trim().split(' ')[0];
+    // Mapeia chaves comuns para títulos/emoji (pode expandir dinamicamente)
+    const map: Record<string, { title: string; emoji?: string }> = {
+      'advogado': { title: 'Advogado ⚖️', emoji: '⚖️' },
+      'vendedor': { title: 'Vendedor 💼', emoji: '💼' },
+      'medico': { title: 'Médico 🩺', emoji: '🩺' },
+      'psicologo': { title: 'Psicólogo 🧘', emoji: '🧘' },
+      'guru': { title: 'Guru 🧠', emoji: '🧠' }
+    };
+
+    const info = map[agentKey.toLowerCase()] || { title: agentKey, emoji: '🤖' };
+    openAgentChat(agentKey, info.title, info.emoji);
+    // Fecha a barra de comandos
+    showGuruCommands.value = false;
+    // Não coloca texto no input
+    return;
   }
+
+  // Comandos normais: envia diretamente
+  handleSendMessage(command);
   // Minimiza a barra de comandos
   showGuruCommands.value = false;
 }
@@ -1044,5 +1115,43 @@ async function handleAudioRecorded(audioBlob: Blob) {
   .custom-bot-btn:active {
     transform: scale(0.95);
   }
+}
+
+/* ===== Agent panes (chat-in-chat) ===== */
+.agent-panes-wrapper {
+  position: fixed;
+  top: 80px;
+  right: 24px;
+  z-index: 120;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+}
+.agent-panes-tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+.agent-tab {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: #fff;
+  padding: 6px 8px;
+  border-radius: 16px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+  cursor: pointer;
+}
+.agent-tab.active {
+  box-shadow: 0 6px 18px rgba(0,0,0,0.12);
+}
+.agent-panes-content {
+  display: flex;
+  gap: 8px;
+}
+
+@media (max-width: 959px) {
+  .agent-panes-wrapper { right: 12px; top: 64px }
 }
 </style>
