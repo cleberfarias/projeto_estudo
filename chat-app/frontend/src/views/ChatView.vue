@@ -369,6 +369,7 @@
       :title="panel.title"
       :emoji="panel.emoji"
       :stack-index="index"
+      :contact-id="chatStore.currentContactId || undefined"
       @close="closeAgentPanel(panel.key)"
       @minimize="minimizeAgentPanel(panel.key)"
     />

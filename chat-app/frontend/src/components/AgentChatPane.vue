@@ -54,12 +54,14 @@
 <script setup lang="ts">
 import { ref, onMounted, onBeforeUnmount, nextTick } from 'vue';
 import { useChatStore } from '@/stores/chat';
+import { useAuthStore } from '@/stores/auth';
 
 interface Props {
   agentKey: string;
   title: string;
   emoji?: string;
   stackIndex?: number; // Para posicionamento de múltiplos painéis
+  contactId?: string; // ID do contato/conversa atual
 }
 const props = withDefaults(defineProps<Props>(), {
   stackIndex: 0
@@ -136,7 +138,31 @@ onMounted(async () => {
   
   // Carrega histórico de mensagens do agente
   try {
-    const response = await fetch(`http://localhost:8000/agents/${props.agentKey}/messages?limit=50`);
+    const authStore = useAuthStore();
+    const token = authStore.token;
+    
+    if (!token) {
+      console.warn(`⚠️ [AgentPane ${props.agentKey}] Sem token, usando mensagem padrão`);
+      messages.value.push({
+        author: props.title,
+        text: `Olá! Eu sou o ${props.title}. Como posso ajudá-lo?`
+      });
+      return;
+    }
+    
+    // Monta URL com contactId se disponível
+    let url = `http://localhost:8000/agents/${props.agentKey}/messages?limit=50`;
+    if (props.contactId) {
+      url += `&contactId=${props.contactId}`;
+      console.log(`🔗 [AgentPane ${props.agentKey}] Carregando com contactId: ${props.contactId}`);
+    }
+    
+    const response = await fetch(url, {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    });
+    
     if (response.ok) {
       const data = await response.json();
       if (data.messages && data.messages.length > 0) {
@@ -155,6 +181,12 @@ onMounted(async () => {
         });
         console.log(`👋 [AgentPane ${props.agentKey}] Sem histórico, mensagem de boas-vindas adicionada`);
       }
+    } else if (response.status === 401) {
+      console.warn(`⚠️ [AgentPane ${props.agentKey}] Token inválido ou expirado`);
+      messages.value.push({
+        author: props.title,
+        text: `Olá! Eu sou o ${props.title}. Como posso ajudá-lo?`
+      });
     }
   } catch (error) {
     console.error(`❌ [AgentPane ${props.agentKey}] Erro ao carregar histórico:`, error);

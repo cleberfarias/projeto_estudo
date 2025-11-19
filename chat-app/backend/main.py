@@ -308,15 +308,34 @@ async def get_messages(
 @app.get("/agents/{agent_key}/messages")
 async def get_agent_messages(
     agent_key: str,
+    request: Request,
+    contact_id: Optional[str] = Query(None, alias="contactId"),
     before: Optional[int] = None,
     limit: int = Query(default=30, le=100)
 ):
     """
-    Retorna histórico de mensagens de um agente específico.
+    Retorna histórico de mensagens de um agente específico para o usuário autenticado.
+    Filtra por contactId se fornecido (mensagens da conversa específica com aquele contato).
     """
     from database import agent_messages_collection
+    from auth import get_user_id_from_token
     
-    query = {"agentKey": agent_key}
+    # Extrai userId do token JWT
+    token = request.headers.get("Authorization", "").replace("Bearer ", "")
+    user_id = get_user_id_from_token(token) if token else None
+    
+    if not user_id:
+        raise HTTPException(status_code=401, detail="Não autenticado")
+    
+    # Filtra por agentKey E userId (E contactId se fornecido)
+    query = {
+        "agentKey": agent_key,
+        "userId": user_id
+    }
+    
+    # 🆕 Se tiver contactId, filtra pela conversa específica
+    if contact_id:
+        query["contactId"] = contact_id
     
     if before:
         before_dt = datetime.fromtimestamp(before / 1000)
@@ -653,9 +672,10 @@ async def handle_chat_send(sid, data):
         # Captura tempId do cliente
         temp_id = data.get("tempId")
         
-        # Captura texto e autor
+        # Captura texto, autor e contactId
         author = data.get("author", "")
         text = data.get("text", "").strip()
+        contact_id = data.get("contactId")  # ID do contato/conversa atual
         
         # 1) COMANDOS (ex: /help, /echo, /time, /ai, /limpar)
         if is_command(text):
@@ -793,9 +813,12 @@ _Quanto mais conversamos, melhor eu te entendo!_ ✨"""
                     "author": author,
                     "text": clean_text if clean_text else f"@{agent_name}",
                     "userId": user_id,
+                    "contactId": contact_id,  # Vincula à conversa específica
                     "createdAt": datetime.now(timezone.utc)
                 }
+                print(f"💾 [AGENT] Salvando pergunta do usuário: agentKey={agent_name}, userId={user_id}, contactId={contact_id}")
                 await agent_messages_collection.insert_one(user_msg_doc)
+                print(f"✅ [AGENT] Pergunta salva com ID: {str(user_msg_doc['_id'])}")
                 
                 # Emite mensagem do usuário apenas para este sid
                 await sio.emit("agent:message", {
@@ -829,9 +852,12 @@ _Quanto mais conversamos, melhor eu te entendo!_ ✨"""
                     "author": agent.get_display_name(),
                     "text": response,
                     "userId": user_id,
+                    "contactId": contact_id,  # Vincula à conversa específica
                     "createdAt": datetime.now(timezone.utc)
                 }
+                print(f"💾 [AGENT] Salvando resposta do agente: agentKey={agent_name}, contactId={contact_id}")
                 await agent_messages_collection.insert_one(agent_msg_doc)
+                print(f"✅ [AGENT] Resposta salva com ID: {str(agent_msg_doc['_id'])}")
                 
                 # Emite resposta apenas para este sid
                 await sio.emit("agent:message", {
