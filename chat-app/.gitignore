@@ -71,3 +71,17 @@ ehthumbs.db
 desktop.ini
 *.swp
 *~
+
+# Secrets and keys
+*.pem
+*.key
+*.crt
+.ssh/
+id_rsa
+id_rsa.pub
+*.p12
+*.jks
+
+# Lock files and secrets
+secrets.*
+.env*

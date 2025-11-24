@@ -287,6 +287,32 @@ S3_SECRET_KEY=MINIOADMIN
 S3_BUCKET=chat-uploads
 PUBLIC_BASE_URL=http://localhost:9000
 MAX_UPLOAD_MB=15
+
+## 🛡️ Segurança e gerenciamento de segredos
+
+Siga estas práticas para manter suas credenciais seguras:
+
+- Nunca commite o arquivo `.env` ou arquivos com chaves privadas; use `.env.example` com placeholders.
+- Se encontrar uma chave real no repo (ou na sua máquina), **rotacione-a imediatamente** no provedor (OpenAI, MinIO, Meta, etc.).
+- Para remover segredos do histórico git, use ferramentas como `git filter-repo` ou `BFG Repo-Cleaner` e então force-push: `git filter-repo --path .env --invert-paths`.
+- Configure `pre-commit` com um scanner de segredos (ex: `detect-secrets` ou `git-secrets`) para evitar futuros commits acidentais.
+- Adicione `*.pem`, `*.key`, `*.crt`, `.env*` ao `.gitignore` (já definido neste repositório).
+
+Como executar um scan local rápido para detectar segredos:
+
+```bash
+# Instale pre-commit e detect-secrets
+pip install detect-secrets pre-commit
+
+# Rode o scanner (padrão inspeciona o diretório atual)
+detect-secrets scan > .secrets.baseline
+
+# Revise e adicione o baseline com pre-commit
+pre-commit install
+pre-commit run --all-files
+```
+
+Se você confirmar que arquivos sensíveis foram commited no passado, **rotacione imediatamente** as credenciais afetadas e, em seguida, remova-as do histórico com as ferramentas citadas acima.
 ```
 
 ### Portas
