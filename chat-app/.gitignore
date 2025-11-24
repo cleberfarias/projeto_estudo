@@ -56,6 +56,7 @@ wppconnect-server/
 # Python virtual environments and bytecode
 .venv/
 venv/
+.tmpvenv/
 *.py[cod]
 __pycache__/
 .pytest_cache/
@@ -84,4 +85,6 @@ id_rsa.pub
 
 # Lock files and secrets
 secrets.*
+.secrets.baseline
 .env*
+!.env.example
