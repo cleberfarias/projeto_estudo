@@ -37,3 +37,11 @@ def decode_token(token: str) -> dict:
         return payload
     except JWTError as e:
         raise ValueError(f"Token inválido: {e}")
+
+def get_user_id_from_token(token: str) -> str:
+    """Extrai o userId (sub) do token JWT"""
+    try:
+        payload = decode_token(token)
+        return payload.get("sub")
+    except Exception:
+        return None

@@ -1,6 +1,6 @@
 // src/composables/useUpload.ts
 export type UploadGrant = { key: string; putUrl: string }
-export type ConfirmIn = { key: string; filename: string; mimetype: string; author: string }
+export type ConfirmIn = { key: string; filename: string; mimetype: string; author: string; contactId?: string | null }
 export type UploadMessage = {
   id: string; author: string; text: string; type: 'image'|'file'|'audio'; status: string;
   timestamp: number; attachment?: any; url?: string
@@ -26,20 +26,26 @@ export function putWithProgress(putUrl: string, file: File, onProgress?: (pct: n
   })
 }
 
-export async function requestGrant(baseUrl: string, file: File): Promise<UploadGrant> {
+export async function requestGrant(baseUrl: string, file: File, token?: string | null): Promise<UploadGrant> {
   const res = await fetch(`${baseUrl}/uploads/grant`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 
+      'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {})
+    },
     body: JSON.stringify({ filename: file.name, mimetype: file.type, size: file.size })
   })
   if (!res.ok) throw new Error('Falha no grant upload')
   return res.json()
 }
 
-export async function confirmUpload(baseUrl: string, body: ConfirmIn): Promise<UploadMessage> {
+export async function confirmUpload(baseUrl: string, body: ConfirmIn, token?: string | null): Promise<UploadMessage> {
   const res = await fetch(`${baseUrl}/uploads/confirm`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 
+      'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {})
+    },
     body: JSON.stringify(body)
   })
   if (!res.ok) throw new Error('Falha no confirm upload')
@@ -54,9 +60,17 @@ export async function uploadAndSend(
   baseUrl: string,
   file: File,
   author: string,
+  token: string | null,
+  contactId?: string | null,
   onProgress?: (pct: number) => void
 ): Promise<UploadMessage> {
-  const { key, putUrl } = await requestGrant(baseUrl, file)
+  if (!token) throw new Error('Token JWT obrigatório para upload')
+  
+  const { key, putUrl } = await requestGrant(baseUrl, file, token)
   await putWithProgress(putUrl, file, onProgress)
-  return confirmUpload(baseUrl, { key, filename: file.name, mimetype: file.type, author })
+  return confirmUpload(
+    baseUrl,
+    { key, filename: file.name, mimetype: file.type, author, contactId },
+    token
+  )
 }

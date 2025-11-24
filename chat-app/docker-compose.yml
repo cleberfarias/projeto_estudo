@@ -36,7 +36,9 @@ services:
     environment:
       - DATABASE_URL=mongodb://mongo:27017/chatdb?replicaSet=rs0
       # JWT Authentication
-      - JWT_SECRET=${JWT_SECRET:-your_jwt_secret_change_in_production}
+      - JWT_SECRET=${JWT_SECRET:-change_me_please_64chars_min}
+      - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-http://localhost:5173,http://localhost:3000}
+      - WA_OWNER_USER_ID=${WA_OWNER_USER_ID:-}
       # Storage (MinIO/S3)
       - S3_ENDPOINT=http://minio:9000
       - S3_REGION=us-east-1
@@ -67,6 +69,11 @@ services:
     depends_on:
       - mongo
       - minio
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   web:
     build:
@@ -81,6 +88,11 @@ services:
     environment:
       - VITE_SOCKET_URL=http://localhost:3000
       - VITE_API_URL=http://localhost:3000
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5173/"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   minio:
     image: minio/minio:latest

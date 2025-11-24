@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia';
 import { io, Socket } from 'socket.io-client';
 import type { Message, TypingInfo } from '@/design-system/types/validation';
+import { useAuthStore } from './auth';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
@@ -70,10 +71,13 @@ export const useChatStore = defineStore('chat', {
         console.error('❌ Erro ao conectar:', error.message);
         
         // Se erro de autenticação, lança exceção para redirecionar ao login
-        if (error.message.includes('invalid') || error.message.includes('unauthorized')) {
-          console.warn('⚠️ Token inválido, necessário relogin');
+        if (error.message.includes('invalid') || 
+            error.message.includes('unauthorized') || 
+            error.message.includes('expired') ||
+            error.message.includes('rejected')) {
+          console.warn('⚠️ Token inválido ou expirado, necessário relogin');
           this.connected = false;
-          throw new Error('Autenticação inválida');
+          throw new Error('Autenticação inválida ou expirada');
         }
       });
 
@@ -115,13 +119,18 @@ export const useChatStore = defineStore('chat', {
         
         // 🆕 Verifica se mensagem é do contato que está conversando
         // Mensagem pertence à conversa atual se:
-        // - Mensagem VEIO do contato selecionado (msg.userId === currentContactId)
-        const isFromCurrentContact = this.currentContactId && msg.userId === this.currentContactId;
+        // - VEIO do contato selecionado (msg.userId === currentContactId)
+        // - FOI ENDEREÇADA ao contato selecionado (msg.contactId === currentContactId)
+        // - FOI ENDEREÇADA ao usuário atual (para entregas direcionadas ex: WhatsApp)
+        const authStore = useAuthStore();
+        const currentUserId = authStore.user?.id;
+        const isFromCurrentContact = this.currentContactId && (msg.userId === this.currentContactId || msg.contactId === this.currentContactId);
+        const isToCurrentUser = currentUserId && msg.contactId === currentUserId;
         
         console.log('✅ isFromCurrentContact:', isFromCurrentContact);
         
         // Adiciona mensagem ao chat se estiver na conversa correta
-        if (isFromCurrentContact || !this.currentContactId) {
+        if (isFromCurrentContact || isToCurrentUser || !this.currentContactId) {
           this.messages.push(msg);
           
           // Se usuário está acima, mostra badge "Novas mensagens"
@@ -136,7 +145,7 @@ export const useChatStore = defineStore('chat', {
           const contactsStore = useContactsStore();
           
           // Se não está visualizando este contato, incrementa unread
-          if (!isFromCurrentContact) {
+          if (!isFromCurrentContact && !isToCurrentUser) {
             console.log('📬 Incrementando unread para contato:', msg.userId);
             contactsStore.incrementUnread(msg.userId);
           }
@@ -248,6 +257,12 @@ export const useChatStore = defineStore('chat', {
       this.loadingMore = true;
       
       try {
+        const authStore = useAuthStore();
+        const headers: Record<string, string> = {};
+        if (authStore.token) {
+          headers.Authorization = `Bearer ${authStore.token}`;
+        }
+        
         // 🆕 Se tiver contactId, usa rota de contatos
         const endpoint = contactId 
           ? `${API_URL}/contacts/${contactId}/messages`
@@ -257,7 +272,8 @@ export const useChatStore = defineStore('chat', {
         if (before) url.searchParams.set('before', String(before));
         url.searchParams.set('limit', '30');
 
-        const res = await fetch(url.toString());
+        const res = await fetch(url.toString(), { headers });
+        if (!res.ok) throw new Error(`Falha ao carregar mensagens (${res.status})`);
         const data = await res.json();
 
         // 🚫 Filtra mensagens de agentes
@@ -309,6 +325,9 @@ export const useChatStore = defineStore('chat', {
     sendMessage(text: string) {
       if (!this.socket?.connected || !text.trim()) return;
 
+      const authStore = useAuthStore();
+      const userId = authStore.user?.id || undefined;
+
       const tempId = `temp_${Date.now()}_${Math.random()}`;
       const message: Message = {
         tempId,
@@ -317,6 +336,8 @@ export const useChatStore = defineStore('chat', {
         type: 'text',
         status: 'pending', // 🔧 Status inicial
         timestamp: Date.now(),
+        userId, // garante alinhamento correto no optimistic
+        contactId: this.currentContactId || undefined,
       };
 
       // 🚀 Optimistic UI: Adiciona ANTES de receber ACK

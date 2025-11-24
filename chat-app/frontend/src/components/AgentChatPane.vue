@@ -56,6 +56,9 @@ import { ref, onMounted, onBeforeUnmount, nextTick } from 'vue';
 import { useChatStore } from '@/stores/chat';
 import { useAuthStore } from '@/stores/auth';
 
+// 🔧 URL base da API
+const apiBaseUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+
 interface Props {
   agentKey: string;
   title: string;
@@ -87,36 +90,43 @@ function send() {
   const text = input.value.trim();
   if (!text || !chatStore.socket) return;
 
-  console.log(`📤 [AgentPane ${props.agentKey}] Enviando mensagem:`, text);
+  console.log(`📤 [AgentPane ${props.agentKey}] Enviando mensagem:`, text, 'contactId:', props.contactId);
 
   // Envia para o backend usando menção ao agente (servidor salva e responde)
   const payload = {
     author: chatStore.currentUser,
     text: `@${props.agentKey} ${text}`.trim(),
     type: 'text',
-    tempId: `agent_${Date.now()}_${Math.random()}`
+    tempId: `agent_${Date.now()}_${Math.random()}`,
+    contactId: props.contactId  // 🆕 Inclui contactId para vincular à conversa
   };
 
   try {
     chatStore.socket.emit('chat:send', payload);
     input.value = '';
     // Não adiciona localmente - aguarda backend retornar via agent:message
-    console.log(`✅ [AgentPane ${props.agentKey}] Mensagem enviada, aguardando resposta do servidor`);
+    console.log(`✅ [AgentPane ${props.agentKey}] Mensagem enviada com contactId:`, props.contactId);
   } catch (e) {
     console.error(`❌ [AgentPane ${props.agentKey}] Erro ao enviar:`, e);
   }
 }
 
 function onNewMessage(msg: any) {
-  console.log('📨 AgentChatPane recebeu agent:message:', msg, 'para agentKey:', props.agentKey);
+  console.log('📨 AgentChatPane recebeu agent:message:', msg, 'para agentKey:', props.agentKey, 'contactId:', props.contactId);
   
-  // Filtra apenas mensagens para este agente
+  // Filtra apenas mensagens para este agente E este contato
   if (!msg || !msg.agentKey || msg.agentKey !== props.agentKey) {
     console.log('⏭️  Mensagem ignorada (agentKey diferente):', msg.agentKey, '!==', props.agentKey);
     return;
   }
   
-  console.log('✅ Mensagem aceita para agente:', props.agentKey);
+  // 🆕 Verifica se a mensagem pertence a este contato (se contactId está definido)
+  if (props.contactId && msg.contactId && msg.contactId !== props.contactId) {
+    console.log('⏭️  Mensagem ignorada (contactId diferente):', msg.contactId, '!==', props.contactId);
+    return;
+  }
+  
+  console.log('✅ Mensagem aceita para agente:', props.agentKey, 'contato:', props.contactId);
   messages.value.push({ 
     id: msg.id,
     author: msg.author, 
@@ -151,11 +161,12 @@ onMounted(async () => {
     }
     
     // Monta URL com contactId se disponível
-    let url = `http://localhost:8000/agents/${props.agentKey}/messages?limit=50`;
+    let url = `${apiBaseUrl}/agents/${props.agentKey}/messages?limit=50`;
     if (props.contactId) {
       url += `&contactId=${props.contactId}`;
       console.log(`🔗 [AgentPane ${props.agentKey}] Carregando com contactId: ${props.contactId}`);
     }
+    console.log(`🌐 [AgentPane ${props.agentKey}] URL completa: ${url}`);
     
     const response = await fetch(url, {
       headers: {

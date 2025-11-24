@@ -71,6 +71,8 @@ type LocalItem = {
 const props = defineProps<{
   baseUrl: string
   author: string
+  token: string | null
+  contactId?: string | null
   multiple?: boolean
   maxMb?: number
   accept?: string
@@ -137,9 +139,20 @@ async function startUpload(it: LocalItem) {
   it.error = undefined
   it.status = 'uploading'
   try {
-    const message = await uploadAndSend(props.baseUrl, it.file, props.author, (pct) => {
-      it.progress = pct
-    })
+    if (!props.token) {
+      throw new Error('Token JWT ausente para upload')
+    }
+    
+    const message = await uploadAndSend(
+      props.baseUrl,
+      it.file,
+      props.author,
+      props.token,
+      props.contactId,
+      (pct) => {
+        it.progress = pct
+      }
+    )
     it.progress = 100
     it.status = 'done'
     emit('uploaded', message) // opcional: o socket já fará broadcast; mas o pai pode reagir

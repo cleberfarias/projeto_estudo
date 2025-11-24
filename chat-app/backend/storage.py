@@ -20,8 +20,15 @@ s3 = boto3.client(
 
 ALLOWED = {
     "image/png","image/jpeg","image/webp","application/pdf",
-    "text/plain","application/zip","application/octet-stream",
+    "text/plain","application/zip",
     "audio/webm","audio/ogg","audio/mpeg","audio/mp4","audio/wav"
+}
+# Permite octet-stream apenas se a extensão for conhecida
+ALLOWED_BY_EXTENSION = {
+    ".zip": "application/zip",
+    ".txt": "text/plain",
+    ".md": "text/plain",
+    ".bin": "application/octet-stream"
 }
 
 def new_object_key(filename: str) -> str:
@@ -31,11 +38,22 @@ def new_object_key(filename: str) -> str:
 def validate_upload(filename: str, mimetype: str, size_mb: int):
     if size_mb > MAX_UPLOAD_MB:
         raise ValueError("Arquivo excede o limite")
-    if mimetype not in ALLOWED:
-        # fallback: tente por extensão
-        guessed = mimetypes.guess_type(filename)[0]
-        if not guessed or guessed not in ALLOWED:
-            raise ValueError("Tipo de arquivo não permitido")
+    if mimetype in ALLOWED:
+        return
+    
+    # Se veio como octet-stream, tenta deduzir pela extensão
+    if mimetype == "application/octet-stream":
+        ext = os.path.splitext(filename)[1].lower()
+        guessed = ALLOWED_BY_EXTENSION.get(ext) or mimetypes.guess_type(filename)[0]
+        if guessed and guessed in ALLOWED:
+            return
+    
+    # fallback: tente por extensão comum
+    guessed = mimetypes.guess_type(filename)[0]
+    if guessed and guessed in ALLOWED:
+        return
+    
+    raise ValueError("Tipo de arquivo não permitido")
 
 def presign_put(key: str, mimetype: str, expires=300):
     url = s3.generate_presigned_url(

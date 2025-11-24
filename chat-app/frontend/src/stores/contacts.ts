@@ -1,4 +1,5 @@
 import { defineStore } from 'pinia';
+import { useAuthStore } from './auth';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
@@ -47,9 +48,14 @@ export const useContactsStore = defineStore('contacts', {
       this.error = null;
 
       try {
+        const authStore = useAuthStore();
+        const headers: Record<string, string> = {};
+        if (authStore.token) headers.Authorization = `Bearer ${authStore.token}`;
+
         console.log('🔄 Carregando contatos de:', `${API_URL}/contacts/`);
         const res = await fetch(`${API_URL}/contacts/`, {
-          redirect: 'follow'
+          redirect: 'follow',
+          headers
         });
         console.log('📡 Resposta:', res.status, res.ok);
         if (!res.ok) throw new Error('Falha ao carregar contatos');
@@ -99,8 +105,13 @@ export const useContactsStore = defineStore('contacts', {
         contact.unreadCount = 0;
 
         try {
+          const authStore = useAuthStore();
+          const headers: Record<string, string> = {};
+          if (authStore.token) headers.Authorization = `Bearer ${authStore.token}`;
+
           await fetch(`${API_URL}/contacts/${contactId}/mark-read`, {
             method: 'POST',
+            headers
           });
         } catch (error) {
           console.error('❌ Erro ao marcar como lido:', error);

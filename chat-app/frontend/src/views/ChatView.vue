@@ -19,41 +19,12 @@
         </v-btn>
       </div>
 
-      <div 
-        class="messages-area"
-        :style="{
-          padding: spacing.xl,
-          backgroundImage: 'url(\'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAoAAAAKCAYAAACNMs+9AAAAGElEQVQYlWNgYGCQwoKxgqGgcJA5h3yFAAs8BRWVSwooAAAAAElFTkSuQmCC\')',
-          backgroundRepeat: 'repeat',
-        }"
-      >
-        <!-- 🆕 SEPARADORES DE DATA + MENSAGENS AGRUPADAS -->
-        <template v-for="(item, index) in groupedMessages" :key="item.id || index">
-          <!-- Separador de Data -->
-          <DateSeparator v-if="'date' in item" :date="item.date" />
-          
-          <!-- Mensagem -->
-          <div
-            v-else
-            :class="['mb-2', item.userId === currentUserId ? 'd-flex justify-end' : 'd-flex justify-start']"
-          >
-            <DSMessageBubble
-              :author="item.author"
-              :timestamp="item.timestamp"
-              :variant="item.userId === currentUserId ? 'sent' : 'received'"
-              :status="item.status"
-              :show-author="item.showAuthor"
-              :show-timestamp="item.showTimestamp"
-              :type="item.type || 'text'"
-              :attachment-url="item.url"
-              :file-name="item.attachment?.filename || item.text"
-              :text="item.type === 'text' ? item.text : ''"
-            />
-          </div>
-        </template>
-
-        <!-- 🆕 INDICADOR "DIGITANDO..." -->
-        <TypingIndicator v-if="chatStore.typingUsers.length > 0" :users="chatStore.typingUsers" />
+      <div class="messages-area">
+        <MessageList
+          :grouped-messages="groupedMessages"
+          :current-user-id="currentUserId"
+          :typing-users="chatStore.typingUsers"
+        />
       </div>
 
       <!-- 🆕 BOTÃO "NOVAS MENSAGENS" (Flutuante) -->
@@ -97,165 +68,8 @@
       </div>
       
       <!-- 🧠 CHIPS DE COMANDOS DO GURU -->
-      <div class="guru-commands-bar" v-if="showGuruCommands">
-        <div class="guru-commands-content">
-          <div class="guru-commands-header">
-            <v-icon size="small" color="teal-darken-3" class="mr-1">mdi-robot-happy</v-icon>
-            <span class="guru-commands-title">Comandos do Guru:</span>
-          </div>
-          <v-chip
-            size="small"
-            color="teal-darken-1"
-            variant="flat"
-            prepend-icon="mdi-chat-processing"
-            class="mr-2 mb-2"
-            @click="insertCommand('@guru')"
-          >
-            @guru
-          </v-chip>
-          <v-chip
-            size="small"
-            color="orange-darken-1"
-            variant="flat"
-            prepend-icon="mdi-exit-to-app"
-            class="mr-2 mb-2"
-            @click="insertCommand('tchau')"
-          >
-            tchau
-          </v-chip>
-          <v-chip
-            size="small"
-            color="orange-darken-1"
-            variant="flat"
-            prepend-icon="mdi-location-exit"
-            class="mr-2 mb-2"
-            @click="insertCommand('sair')"
-          >
-            sair
-          </v-chip>
-          <v-chip
-            size="small"
-            color="blue-darken-1"
-            variant="flat"
-            prepend-icon="mdi-lightbulb-question"
-            class="mr-2 mb-2"
-            @click="insertCommand('/ai ')"
-          >
-            /ai
-          </v-chip>
-          <v-chip
-            size="small"
-            color="red-darken-1"
-            variant="flat"
-            prepend-icon="mdi-broom"
-            class="mr-2 mb-2"
-            @click="insertCommand('/limpar')"
-          >
-            /limpar
-          </v-chip>
-          <v-chip
-            size="small"
-            color="purple-darken-1"
-            variant="flat"
-            prepend-icon="mdi-view-list"
-            class="mr-2 mb-2"
-            @click="insertCommand('/ajuda')"
-          >
-            /ajuda
-          </v-chip>
-          <v-chip
-            size="small"
-            color="indigo-darken-1"
-            variant="flat"
-            prepend-icon="mdi-clipboard-text"
-            class="mr-2 mb-2"
-            @click="insertCommand('/resumo')"
-          >
-            /resumo
-          </v-chip>
-          <v-chip
-            size="small"
-            color="cyan-darken-1"
-            variant="flat"
-            prepend-icon="mdi-chart-box"
-            class="mr-2 mb-2"
-            @click="insertCommand('/contexto')"
-          >
-            /contexto
-          </v-chip>
-          
-          <!-- Separador de Agentes -->
-          <v-divider class="my-2"></v-divider>
-          
-          <div class="guru-commands-header mt-2">
-            <v-icon size="small" color="purple-darken-2" class="mr-1">mdi-account-group</v-icon>
-            <span class="guru-commands-title">Agentes Especializados:</span>
-          </div>
-          
-          <v-chip
-            size="small"
-            color="deep-purple-darken-1"
-            variant="flat"
-            prepend-icon="mdi-scale-balance"
-            class="mr-2 mb-2"
-            @click="insertCommand('@advogado ')"
-          >
-            @advogado ⚖️
-          </v-chip>
-          
-          <v-chip
-            size="small"
-            color="blue-grey-darken-1"
-            variant="flat"
-            prepend-icon="mdi-briefcase-account"
-            class="mr-2 mb-2"
-            @click="insertCommand('@vendedor ')"
-          >
-            @vendedor 💼
-          </v-chip>
-          
-          <v-chip
-            size="small"
-            color="red-darken-1"
-            variant="flat"
-            prepend-icon="mdi-hospital-box"
-            class="mr-2 mb-2"
-            @click="insertCommand('@medico ')"
-          >
-            @medico 🩺
-          </v-chip>
-          
-          <v-chip
-            size="small"
-            color="green-darken-1"
-            variant="flat"
-            prepend-icon="mdi-meditation"
-            class="mr-2 mb-2"
-            @click="insertCommand('@psicologo ')"
-          >
-            @psicologo 🧘
-          </v-chip>
-          
-          <v-chip
-            size="small"
-            color="amber-darken-2"
-            variant="flat"
-            prepend-icon="mdi-robot"
-            class="mr-2 mb-2"
-            @click="insertCommand('/agentes')"
-          >
-            /agentes
-          </v-chip>
-          <v-btn
-            icon="mdi-close"
-            size="x-small"
-            variant="text"
-            color="grey-darken-2"
-            class="ml-auto"
-            @click="showGuruCommands = false"
-          />
-        </div>
-      </div>
+      <!-- 🧠 CHIPS DE COMANDOS DO GURU -->
+      <CommandBar v-model="showGuruCommands" @command="insertCommand" />
 
       <!-- 🔘 Botão para mostrar/ocultar comandos -->
       <v-btn
@@ -312,12 +126,6 @@
         </template>
       </DSChatInput>
     </div>
-
-    <!-- GRAVADOR DE VOZ -->
-    <VoiceRecorder
-      v-model="showVoiceRecorder"
-      @audio-recorded="handleAudioRecorded"
-    />
 
     <!-- GRAVADOR DE VOZ -->
     <VoiceRecorder
@@ -399,10 +207,8 @@
 <script setup lang="ts">
 import { ref, watch, onMounted, onBeforeUnmount, computed, nextTick } from 'vue';
 import { useRouter } from 'vue-router';
-import DSMessageBubble from '../design-system/components/DSMessageBubble.vue';
+import MessageList from '../components/MessageList.vue';
 import DSChatInput from '../design-system/components/DSChatInput.vue';
-import TypingIndicator from '../components/TypingIndicator.vue';
-import DateSeparator from '../components/DateSeparator.vue';
 import AttachmentMenu from '../components/AttachmentMenu.vue';
 import VoiceRecorder from '../components/VoiceRecorder.vue';
 import CustomBotCreator from '../components/CustomBotCreator.vue';
@@ -415,6 +221,7 @@ import { useScrollToBottom } from '../design-system/composables/useScrollToBotto
 import { colors, spacing } from '../design-system/tokens/index.ts';
 import { uploadAndSend } from '../composables/useUpload';
 import type { Contact } from '../stores/contacts';
+import CommandBar from '../components/CommandBar.vue';
 
 // 🆕 Props
 interface Props {
@@ -446,8 +253,16 @@ const uploadProgress = ref(0);
 
 const { containerRef, scrollToBottom } = useScrollToBottom();
 
-// 🆕 Estado para painéis de agente (chat-in-chat)
-const agentPanels = ref<Array<{ key: string; title: string; emoji?: string; minimized?: boolean }>>([]);
+// 🆕 Estado para painéis de agente (chat-in-chat) vinculados por contactId
+// Estrutura: { contactId: [{ key, title, emoji, minimized }] }
+const agentPanelsByContact = ref<Record<string, Array<{ key: string; title: string; emoji?: string; minimized?: boolean }>>>({});
+
+// 🆕 Computed: Painéis do contato atual
+const agentPanels = computed(() => {
+  const contactId = props.contact?.id || chatStore.currentContactId;
+  if (!contactId) return [];
+  return agentPanelsByContact.value[contactId] || [];
+});
 
 // Carrega autenticação do localStorage
 authStore.load();
@@ -548,6 +363,14 @@ onMounted(async () => {
     return;
   }
   
+  // 🆕 Verifica se o token está expirado
+  if (authStore.isTokenExpired()) {
+    console.warn('⚠️ Token expirado, redirecionando para login...');
+    authStore.logout();
+    router.push('/login');
+    return;
+  }
+  
   // Define o nome do usuário no store
   if (author.value) {
     chatStore.currentUser = author.value;
@@ -583,6 +406,10 @@ watch(() => props.contact?.id, async (newContactId, oldContactId) => {
     await chatStore.loadMessages(undefined, newContactId);
     await contactsStore.markContactRead(newContactId);
     scrollToBottom();
+    
+    // 🆕 Os painéis de agente são mantidos por contato automaticamente
+    // Cada contato tem seus próprios painéis salvos em agentPanelsByContact
+    console.log('📋 Painéis do novo contato:', agentPanelsByContact.value[newContactId] || []);
   }
 }, { immediate: true });
 
@@ -710,33 +537,59 @@ function insertCommand(command: string) {
   showGuruCommands.value = false;
 }
 
-// 🆕 FUNÇÕES: Gerenciamento de painéis de agente
+// 🆕 FUNÇÕES: Gerenciamento de painéis de agente (vinculados por contactId)
 function openAgentPanel(key: string, title: string, emoji?: string) {
-  console.log('📂 openAgentPanel chamado:', { key, title, emoji });
+  const contactId = props.contact?.id || chatStore.currentContactId;
   
-  // Verifica se já existe (aberto ou minimizado)
-  const existing = agentPanels.value.find(p => p.key === key);
+  if (!contactId) {
+    console.warn('⚠️ Tentativa de abrir painel sem contactId');
+    return;
+  }
+  
+  console.log('📂 openAgentPanel chamado:', { key, title, emoji, contactId });
+  
+  // Inicializa array para este contato se não existir
+  if (!agentPanelsByContact.value[contactId]) {
+    agentPanelsByContact.value[contactId] = [];
+  }
+  
+  // Verifica se já existe (aberto ou minimizado) neste contato
+  const existing = agentPanelsByContact.value[contactId].find(p => p.key === key);
   if (existing) {
-    console.log('🔄 Painel já existe, maximizando:', key);
+    console.log('🔄 Painel já existe no contato, maximizando:', key);
     // Se existe mas está minimizado, maximiza
     existing.minimized = false;
   } else {
-    console.log('➕ Criando novo painel:', key);
+    console.log('➕ Criando novo painel para o contato:', key, contactId);
     // Se não existe, adiciona novo painel
-    agentPanels.value.push({ key, title, emoji, minimized: false });
+    agentPanelsByContact.value[contactId].push({ key, title, emoji, minimized: false });
   }
   
-  console.log('📋 Estado atual dos painéis:', agentPanels.value);
+  console.log('📋 Estado dos painéis deste contato:', agentPanelsByContact.value[contactId]);
 }
 
 function closeAgentPanel(key: string) {
-  console.log('❌ Fechando painel:', key);
-  agentPanels.value = agentPanels.value.filter(p => p.key !== key);
+  const contactId = props.contact?.id || chatStore.currentContactId;
+  
+  if (!contactId || !agentPanelsByContact.value[contactId]) {
+    console.warn('⚠️ Tentativa de fechar painel sem contactId');
+    return;
+  }
+  
+  console.log('❌ Fechando painel:', key, 'do contato:', contactId);
+  agentPanelsByContact.value[contactId] = agentPanelsByContact.value[contactId].filter(p => p.key !== key);
 }
 
 function minimizeAgentPanel(key: string) {
-  console.log('➖ Minimizando painel:', key);
-  const panel = agentPanels.value.find(p => p.key === key);
+  const contactId = props.contact?.id || chatStore.currentContactId;
+  
+  if (!contactId || !agentPanelsByContact.value[contactId]) {
+    console.warn('⚠️ Tentativa de minimizar painel sem contactId');
+    return;
+  }
+  
+  console.log('➖ Minimizando painel:', key, 'do contato:', contactId);
+  const panel = agentPanelsByContact.value[contactId].find(p => p.key === key);
   if (panel) {
     panel.minimized = true;
     console.log('✅ Painel minimizado:', key);
@@ -810,10 +663,17 @@ async function handleFileUpload(file: File) {
   uploadProgress.value = 0;
   
   try {
-    await uploadAndSend(apiBaseUrl, file, author.value, (progress) => {
+    await uploadAndSend(
+      apiBaseUrl,
+      file,
+      author.value,
+      authStore.token,
+      chatStore.currentContactId,
+      (progress) => {
       uploadProgress.value = progress;
       console.log(`📊 Progresso: ${progress}%`);
-    });
+      }
+    );
     
     uploadingFile.value = false;
     uploadProgress.value = 0;
@@ -855,63 +715,47 @@ async function handleAudioRecorded(audioBlob: Blob) {
   overflow-y: auto;
   overflow-x: hidden;
   position: relative;
-  padding-bottom: 100px; /* Espaço para input + barra guru + typing */
-  background-color: #e5ddd5;
-  background-image: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAoAAAAKCAYAAACNMs+9AAAAGElEQVQYlWNgYGCQwoKxgqGgcJA5h3yFAAs8BRWVSwooAAAAAElFTkSuQmCC');
-  background-repeat: repeat;
-  opacity: 0.98;
-}
-
-/* 📱 Mobile - Padding ajustado */
-@media (max-width: 959px) {
-  .messages-wrapper {
-    padding-bottom: 90px;
-  }
-}
-
-/* 📱 Tablet */
-@media (min-width: 600px) and (max-width: 959px) {
-  .messages-wrapper {
-    padding-bottom: 110px;
-  }
-}
-
-/* 🖥️ Desktop */
-@media (min-width: 960px) {
-  .messages-wrapper {
-    padding-bottom: 120px;
-  }
+  background: radial-gradient(circle at 20% 20%, rgba(255,255,255,0.9), rgba(235,241,247,0.85)),
+              radial-gradient(circle at 80% 0%, rgba(255,255,255,0.8), rgba(225,235,245,0.8));
+  background-color: #e8f0f7;
 }
 
 .messages-area {
   min-height: 100%;
   display: flex;
   flex-direction: column;
-  padding: 16px;
+  padding: 16px 16px 140px 16px; /* Padding bottom para espaço do input */
 }
 
 /* 📱 Tablet e Desktop - Padding maior */
 @media (min-width: 600px) {
   .messages-area {
-    padding: 20px;
+    padding: 20px 20px 160px 20px;
   }
 }
 
 @media (min-width: 960px) {
   .messages-area {
-    padding: 24px;
+    padding: 24px 24px 180px 24px;
   }
 }
 
 .chat-input-wrapper {
-  position: absolute;
+  position: fixed;
   bottom: 0;
   left: 0;
   right: 0;
   flex-shrink: 0;
   z-index: 10;
-  background: inherit;
+  background: white;
   box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
+}
+
+/* 🖥️ Desktop - Ajuste para considerar sidebar */
+@media (min-width: 769px) {
+  .chat-input-wrapper {
+    left: 360px; /* Largura da sidebar */
+  }
 }
 
 /* 🧠 Banner de sessão ativa com Guru */
@@ -944,74 +788,10 @@ async function handleAudioRecorded(audioBlob: Blob) {
   }
 }
 
-/* 🧠 Barra de comandos do Guru */
-.guru-commands-bar {
-  background: linear-gradient(135deg, #e0f7fa 0%, #b2ebf2 100%);
-  border-bottom: 1px solid #4dd0e1;
-  padding: 10px 12px;
-  overflow-x: auto;
-  overflow-y: hidden;
-  animation: slideDown 0.3s ease-out;
-}
-
-@keyframes slideDown {
-  from {
-    opacity: 0;
-    transform: translateY(-10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.guru-commands-content {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 6px;
-  width: 100%;
-}
-
-.guru-commands-header {
-  display: flex;
-  align-items: center;
-  margin-right: 8px;
-  margin-bottom: 8px;
-  font-weight: 600;
-  font-size: 13px;
-  color: #00695c;
-  white-space: nowrap;
-}
-
-.guru-commands-title {
-  font-size: 12px;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-.guru-commands-bar .v-chip {
-  cursor: pointer;
-  transition: all 0.2s ease;
-  font-weight: 500;
-  font-size: 12px;
-  white-space: nowrap;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
-
-.guru-commands-bar .v-chip:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-}
-
-.guru-commands-bar .v-chip:active {
-  transform: translateY(0);
-}
-
 /* 🔘 Botão toggle do Guru */
 .guru-toggle-btn {
   position: fixed !important;
-  bottom: 76px;
+  bottom: 90px;
   right: 24px;
   z-index: 11;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
@@ -1048,21 +828,8 @@ async function handleAudioRecorded(audioBlob: Blob) {
 
 /* 📱 Mobile - Ajustes responsivos */
 @media (max-width: 599px) {
-  .guru-commands-bar {
-    padding: 8px 10px;
-  }
-  
-  .guru-commands-header {
-    font-size: 11px;
-  }
-  
-  .guru-commands-bar .v-chip {
-    font-size: 11px;
-    height: 28px;
-  }
-  
   .guru-toggle-btn {
-    bottom: 68px;
+    bottom: 90px;
     right: 16px;
   }
 }
@@ -1093,9 +860,9 @@ async function handleAudioRecorded(audioBlob: Blob) {
 
 /* 🆕 Botão flutuante "Novas Mensagens" */
 .new-messages-fab {
-  position: absolute !important;
-  bottom: 100px;
-  right: 20px;
+  position: fixed !important;
+  bottom: 210px;
+  right: 24px;
   z-index: 5;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
@@ -1103,7 +870,7 @@ async function handleAudioRecorded(audioBlob: Blob) {
 /* 📱 Mobile - Botão menor e mais à esquerda */
 @media (max-width: 599px) {
   .new-messages-fab {
-    bottom: 80px;
+    bottom: 190px;
     right: 16px;
   }
 }
@@ -1132,7 +899,7 @@ async function handleAudioRecorded(audioBlob: Blob) {
 /* 🤖 Botão de Criar Bot Personalizado */
 .custom-bot-btn {
   position: fixed !important;
-  bottom: 140px;
+  bottom: 150px;
   right: 24px;
   z-index: 100;
   box-shadow: 0 2px 8px rgba(156, 39, 176, 0.3);
@@ -1147,7 +914,7 @@ async function handleAudioRecorded(audioBlob: Blob) {
 /* 📱 Mobile - Ajustes responsivos */
 @media (max-width: 599px) {
   .custom-bot-btn {
-    bottom: 120px;
+    bottom: 130px;
     right: 16px;
   }
 }
@@ -1161,12 +928,19 @@ async function handleAudioRecorded(audioBlob: Blob) {
 
 /* 🔥 Barra de Agentes Minimizados */
 .minimized-agents-bar {
-  position: absolute;
-  bottom: 76px;
-  right: 24px;
+  position: fixed;
+  bottom: 90px;
+  left: 24px;
   display: flex;
   gap: 8px;
   z-index: 999;
+}
+
+/* 🖥️ Desktop - Posiciona após sidebar */
+@media (min-width: 769px) {
+  .minimized-agents-bar {
+    left: 384px; /* 360px sidebar + 24px margem */
+  }
 }
 
 .minimized-agent-tab {
@@ -1218,8 +992,8 @@ async function handleAudioRecorded(audioBlob: Blob) {
 
 @media (max-width: 599px) {
   .minimized-agents-bar {
-    bottom: 68px;
-    right: 16px;
+    bottom: 90px;
+    left: 16px;
   }
   
   .minimized-agent-tab {
@@ -1233,6 +1007,12 @@ async function handleAudioRecorded(audioBlob: Blob) {
   
   .tab-name {
     font-size: 12px;
+  }
+}
+
+@media (min-width: 600px) and (max-width: 768px) {
+  .minimized-agents-bar {
+    left: 16px;
   }
 }
 </style>

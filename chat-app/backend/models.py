@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict, field_serializer
 from datetime import datetime
 from typing import Optional
 
@@ -27,12 +27,11 @@ class MessageCreate(MessageBase):
 class Message(MessageBase):
     id: str = Field(alias="_id")
     createdAt: datetime
-    
-    class Config:
-        populate_by_name = True
-        json_encoders = {
-            datetime: lambda v: int(v.timestamp() * 1000)  # Converte para timestamp
-        }
+    model_config = ConfigDict(populate_by_name=True)
+
+    @field_serializer("createdAt")
+    def _serialize_created_at(self, v: datetime) -> int:
+        return int(v.timestamp() * 1000)
 
 
 class MessageResponse(BaseModel):

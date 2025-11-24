@@ -60,5 +60,27 @@ export const useAuthStore = defineStore('auth', () => {
     clear()
   }
 
-  return { token, user, login, register, logout, load }
+  // Verifica se o token está expirado
+  function isTokenExpired(): boolean {
+    if (!token.value) return true
+    
+    try {
+      // Decodifica o payload do JWT (parte do meio)
+      const payload = JSON.parse(atob(token.value.split('.')[1]))
+      const exp = payload.exp * 1000 // Converte para milliseconds
+      const now = Date.now()
+      
+      // Token expira em menos de 1 minuto? Considera expirado
+      return exp - now < 60000
+    } catch {
+      return true
+    }
+  }
+
+  // Verifica se está autenticado com token válido
+  function isAuthenticated(): boolean {
+    return token.value !== null && !isTokenExpired()
+  }
+
+  return { token, user, login, register, logout, load, isTokenExpired, isAuthenticated }
 })

@@ -6,8 +6,10 @@ from pydantic import BaseModel
 from fastapi import APIRouter, HTTPException, Depends
 from bson import ObjectId
 from database import db
+from deps import get_current_user_id
 
 router = APIRouter(prefix="/contacts", tags=["contacts"])
+
 
 # ============================================================================
 # MODELS
@@ -44,13 +46,13 @@ class ConversationMessage(BaseModel):
 # ============================================================================
 
 @router.get("/", response_model=List[Contact])
-async def list_contacts(current_user: dict = Depends(lambda: None)):
+async def list_contacts(current_user_id: str = Depends(get_current_user_id)):
     """
     Lista todos os usuários cadastrados como contatos
     (compatibilidade com mensagens antigas sem contactId)
     """
-    # Por enquanto, retorna todos os usuários cadastrados
-    users = await db.users.find({}, {"password": 0}).to_list(None)
+    # Por enquanto, retorna todos os usuários cadastrados (exceto o próprio)
+    users = await db.users.find({"_id": {"$ne": ObjectId(current_user_id)}}, {"password": 0}).to_list(None)
     
     contacts = []
     for user in users:
@@ -85,7 +87,12 @@ class ConversationResponse(BaseModel):
     hasMore: bool
 
 @router.get("/{contact_id}/messages", response_model=ConversationResponse)
-async def get_conversation(contact_id: str, limit: int = 50, before: Optional[int] = None):
+async def get_conversation(
+    contact_id: str,
+    limit: int = 50,
+    before: Optional[int] = None,
+    current_user_id: str = Depends(get_current_user_id)
+):
     """
     Retorna mensagens de uma conversa específica com um contato
     """
@@ -97,14 +104,13 @@ async def get_conversation(contact_id: str, limit: int = 50, before: Optional[in
         
         contact_name = contact.get("name", contact["email"])
         
-        # Filtro: mensagens desta conversa (suporta formato antigo e novo)
-        # Formato novo: contactId = contact_id
-        # Formato antigo: userId = contact_id OU author = contact_name
+        # Filtro: conversa entre usuário autenticado e contato
         query = {
             "$or": [
-                {"contactId": contact_id},
-                {"userId": contact_id},
-                {"author": contact_name}
+                {"userId": current_user_id, "contactId": contact_id},
+                {"userId": contact_id, "contactId": current_user_id},
+                # Compatibilidade legado: usa author pelo nome do contato, mas limita ao usuário atual
+                {"author": contact_name, "userId": current_user_id}
             ]
         }
         
@@ -151,7 +157,7 @@ async def get_conversation(contact_id: str, limit: int = 50, before: Optional[in
 
 
 @router.post("/{contact_id}/mark-read")
-async def mark_conversation_read(contact_id: str):
+async def mark_conversation_read(contact_id: str, current_user_id: str = Depends(get_current_user_id)):
     """
     Marca todas as mensagens de um contato como lidas
     """
@@ -166,8 +172,9 @@ async def mark_conversation_read(contact_id: str):
         result = await db.messages.update_many(
             {
                 "$or": [
-                    {"userId": contact_id},
-                    {"author": contact_name}
+                    {"userId": current_user_id, "contactId": contact_id},
+                    {"userId": contact_id, "contactId": current_user_id},
+                    {"author": contact_name, "userId": current_user_id}
                 ],
                 "status": {"$ne": "read"}
             },
