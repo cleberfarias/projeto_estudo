@@ -1,59 +1,81 @@
 # 💬 Chat App - Aplicação de Chat em Tempo Real
 
 [![Vue 3](https://img.shields.io/badge/Vue-3.5-4FC08D?logo=vue.js)](https://vuejs.org/)
+[![Python](https://img.shields.io/badge/Python-3.11-3776AB?logo=python)](https://www.python.org/)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.115-009688?logo=fastapi)](https://fastapi.tiangolo.com/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.9-3178C6?logo=typescript)](https://www.typescriptlang.org/)
-[![Socket.IO](https://img.shields.io/badge/Socket.IO-4.8-010101?logo=socket.io)](https://socket.io/)
+[![Socket.IO](https://img.shields.io/badge/Socket.IO-5.11-010101?logo=socket.io/)](https://socket.io/)
+[![MongoDB](https://img.shields.io/badge/MongoDB-7.0-47A248?logo=mongodb)](https://www.mongodb.com/)
 [![Docker](https://img.shields.io/badge/Docker-Ready-2496ED?logo=docker)](https://www.docker.com/)
 [![Vuetify](https://img.shields.io/badge/Vuetify-3.10-1867C0?logo=vuetify)](https://vuetifyjs.com/)
+[![License](https://img.shields.io/badge/License-AGPL--3.0-blue.svg)](chat-app/LICENSE)
 
-> Uma aplicação de chat em tempo real moderna, construída com Vue 3, Node.js e Socket.IO, totalmente containerizada com Docker.
+> Aplicação de chat moderna, com frontend Vue 3 + Vuetify e backend FastAPI/Socket.IO, persistência MongoDB e uploads para MinIO/S3. Inclui agentes de IA especializados e bots personalizados.
 
 ## ✨ Recursos
 
-- ✅ **Comunicação em Tempo Real** via WebSockets (Socket.IO)
-- ✅ **Interface Moderna** com Material Design (Vuetify)
-- ✅ **Type-Safe** com TypeScript em frontend e backend
-- ✅ **Validação de Dados** com Zod no backend
-- ✅ **Docker Ready** com hot-reload para desenvolvimento
-- ✅ **Gerenciamento de Estado** com Pinia
-- ✅ **Roteamento** com Vue Router
+- **Comunicação em tempo real** via Socket.IO (websocket + fallback)
+- **Autenticação JWT** com registro e login de usuários
+- **Upload de arquivos** com URLs pré-assinadas para MinIO/S3
+- **Interface estilo WhatsApp** com menu de anexos e indicador de digitação
+- **Persistência** de mensagens em MongoDB (replica set)
+- **Sistema de agentes IA** com 5 especialistas e bots customizados (OpenAI)
+- **Docker ready** para desenvolvimento com hot-reload
+
+## 🗺️ Arquitetura
+
+A visão visual da arquitetura (frontend, FastAPI/Socket.IO, MongoDB, MinIO e integrações externas) está documentada em [`chat-app/docs/ARCHITECTURE.md`](chat-app/docs/ARCHITECTURE.md), com diagramas Mermaid e fluxo de comunicação principal. Resumo do stack:
+
+- **Frontend:** Vue 3 + TypeScript, Vite, Vuetify, Socket.IO client, Zod para validação.
+- **Backend:** Python 3.11, FastAPI, python-socketio, Motor (MongoDB), Pydantic, PyJWT e boto3 para MinIO/S3.
+- **Infra:** MongoDB replica set, MinIO/S3 para objetos, Docker Compose para orquestração.
 
 ## 📋 Pré-requisitos
 
 - [Docker](https://www.docker.com/) e Docker Compose (recomendado)
 - **OU**
-- [Node.js](https://nodejs.org/) 20+
+- [Python](https://www.python.org/) 3.11+ (backend)
+- [Node.js](https://nodejs.org/) 20+ (frontend)
+- [MongoDB](https://www.mongodb.com/) 7.0+ com replica set
 - npm ou yarn
 
 ## 🚀 Início Rápido
 
-### Com Docker (Recomendado)
+### Com Docker (recomendado)
 
 ```bash
 # 1. Clone o repositório
 git clone https://github.com/cleberfarias/projeto_estudo.git
 cd projeto_estudo/chat-app
 
-# 2. Inicie os containers
+# 2. Suba os containers
 docker-compose up
 
-# 3. Acesse a aplicação
+# 3. Acesse
 # Frontend: http://localhost:5173
 # Backend:  http://localhost:3000
+# MongoDB:  localhost:27017
+# MinIO S3: http://localhost:9000 (console: 9001)
 ```
 
 ### Sem Docker
 
-**Backend:**
+**MongoDB (replica set):**
 ```bash
-cd backend
-npm install
-npm run dev
+mongod --replSet rs0
+mongosh --eval "rs.initiate()"
 ```
 
-**Frontend:**
+**Backend (FastAPI + Socket.IO):**
 ```bash
-cd frontend
+cd chat-app/backend
+pip install -r requirements.txt
+uvicorn main:socket_app --reload --port 3000
+```
+
+**Frontend (Vue 3 + Vite):**
+```bash
+cd chat-app/frontend
 npm install
 npm run dev
 ```
@@ -62,219 +84,81 @@ npm run dev
 
 ```
 chat-app/
-├── backend/              # Servidor Node.js + Express + Socket.IO
+├── backend/              # FastAPI + Socket.IO + MongoDB (Motor)
+│   ├── main.py          # App FastAPI + servidor Socket.IO
+│   ├── routers/         # Rotas REST (auth, mensagens, uploads, bots)
+│   ├── socket_handlers.py # Eventos Socket.IO
+│   ├── storage.py       # Integração MinIO/S3 (presigned URLs)
+│   └── bots/            # Agentes IA e automações
+├── frontend/            # Vue 3 + Vuetify
 │   ├── src/
-│   │   └── index.ts     # Servidor principal
-│   ├── Dockerfile
-│   ├── package.json
-│   └── tsconfig.json
-├── frontend/            # Cliente Vue 3 + Vuetify
-│   ├── src/
-│   │   ├── main.ts     # Entry point
-│   │   ├── App.vue     # Componente raiz
-│   │   ├── views/
-│   │   │   └── ChatView.vue
-│   │   └── design-system/
-│   │       ├── components/
-│   │       ├── composables/
-│   │       ├── tokens/
-│   │       └── types/
-│   ├── Dockerfile
-│   ├── package.json
-│   └── vite.config.ts
-├── docker-compose.yml   # Orquestração dos serviços
-├── .env                 # Variáveis de ambiente
-├── README.md           # Este arquivo
-└── DOCUMENTACAO.md     # Documentação técnica detalhada
+│   │   ├── views/       # Chat principal e telas de autenticação
+│   │   ├── components/  # Uploads, criador de bot, indicadores
+│   │   └── stores/      # Pinia (auth/chat)
+├── docs/                # Documentação (inclui arquitetura)
+├── docker-compose.yml   # Orquestração (frontend, backend, mongo, minio)
+├── LICENSE              # AGPL-3.0
+└── README.md            # Este arquivo
 ```
-
-## 📡 API Socket.IO
-
-### Eventos do Cliente → Servidor
-
-| Evento | Payload | Descrição |
-|--------|---------|-----------|
-| `chat:new-message` | `{author: string, text: string}` | Envia nova mensagem |
-
-### Eventos do Servidor → Cliente
-
-| Evento | Payload | Descrição |
-|--------|---------|-----------|
-| `chat:new-message` | `{author: string, text: string}` | Broadcasting de mensagem para todos |
 
 ## 🔧 Configuração
 
-### Variáveis de Ambiente
-
-Edite `.env` na raiz do projeto:
+Defina as variáveis de ambiente em `chat-app/.env`:
 
 ```env
+# Backend
+DATABASE_URL=mongodb://mongo:27017/chatdb?replicaSet=rs0
+JWT_SECRET=seu-secret-super-seguro-aqui
+JWT_ALGORITHM=HS256
+JWT_EXPIRATION_MINUTES=43200
+
+# Frontend
 VITE_SOCKET_URL=http://localhost:3000
+
+# MinIO / S3
+S3_ENDPOINT=http://minio:9000
+S3_REGION=us-east-1
+S3_ACCESS_KEY=MINIOADMIN
+S3_SECRET_KEY=MINIOADMIN
+S3_BUCKET=chat-uploads
+PUBLIC_BASE_URL=http://localhost:9000
 ```
 
-### Portas
+## 📦 Scripts úteis
 
-- **Backend:** 3000
-- **Frontend:** 5173
-
-Para alterar, edite `docker-compose.yml`:
-
-```yaml
-ports:
-  - "NOVA_PORTA:PORTA_CONTAINER"
-```
-
-## 📦 Scripts Disponíveis
-
-### Backend
-
+### Backend (Python)
 ```bash
-npm run dev      # Servidor com hot-reload
-npm run build    # Compilar TypeScript
-npm start        # Executar versão compilada
+uvicorn main:socket_app --reload --port 3000
+python -m pytest  # se houver testes configurados
 ```
 
-### Frontend
-
+### Frontend (Vue/TypeScript)
 ```bash
-npm run dev      # Dev server Vite com hot-reload
-npm run build    # Build para produção
-npm run preview  # Preview da build
+npm run dev
+npm run build
+npm run preview
+npm run lint
 ```
 
-## 🎨 Tecnologias Utilizadas
-
-### Frontend
-- **Vue 3** - Framework progressivo
-- **TypeScript** - Type safety
-- **Vuetify** - Material Design UI
-- **Pinia** - State management
-- **Vue Router** - Roteamento
-- **Socket.IO Client** - WebSocket client
-- **Vite** - Build tool
-
-### Backend
-- **Node.js** - Runtime JavaScript
-- **Express** - Framework web
-- **Socket.IO** - WebSocket server
-- **TypeScript** - Type safety
-- **Zod** - Schema validation
-- **CORS** - Cross-origin support
-
-### DevOps
-- **Docker** - Containerização
-- **Docker Compose** - Orquestração
-
-## 🐛 Troubleshooting
-
-### Mensagens não são recebidas
-
-Verifique se os eventos Socket.IO estão sincronizados entre backend e frontend. O evento deve ser `'chat:new-message'` em ambos.
-
-### CORS Error
-
-Certifique-se que o CORS está habilitado no backend (`backend/src/index.ts`):
-
-```typescript
-app.use(cors())
-```
-
-### Containers não iniciam
-
+### Docker
 ```bash
-# Remova containers e volumes antigos
-docker-compose down -v
-
-# Reconstrua as imagens
-docker-compose build --no-cache
-
-# Inicie novamente
-docker-compose up
-```
-
-### Hot-reload não funciona
-
-Verifique se os volumes estão configurados corretamente no `docker-compose.yml`:
-
-```yaml
-volumes:
-  - ./backend:/app
-  - /app/node_modules
+docker-compose up              # Inicia todos os serviços
+docker-compose down -v         # Para e remove volumes
+docker-compose logs -f backend # Logs do backend em tempo real
 ```
 
 ## 📚 Documentação
 
-Para documentação técnica detalhada linha por linha, consulte [`DOCUMENTACAO.md`](DOCUMENTACAO.md).
-
-## 🚀 Deploy
-
-### Opções de Hospedagem
-
-- **Frontend:** [Vercel](https://vercel.com/), [Netlify](https://www.netlify.com/), [GitHub Pages](https://pages.github.com/)
-- **Backend:** [Railway](https://railway.app/), [Render](https://render.com/), [Fly.io](https://fly.io/)
-- **Full Stack:** [Heroku](https://www.heroku.com/), [DigitalOcean](https://www.digitalocean.com/)
-
-### Preparação para Produção
-
-1. Configure `VITE_SOCKET_URL` com URL do backend em produção
-2. Ative HTTPS (obrigatório para WebSockets seguros)
-3. Configure CORS para aceitar apenas domínios autorizados:
-
-```typescript
-const io = new Server(server, {
-  cors: {
-    origin: 'https://seu-dominio.com',
-    methods: ['GET', 'POST']
-  }
-})
-```
-
-## 🛣️ Roadmap
-
-- [ ] Persistência de mensagens (MongoDB/PostgreSQL)
-- [ ] Salas de chat múltiplas
-- [ ] Autenticação de usuários (JWT)
-- [ ] Upload de imagens/arquivos
-- [ ] Indicador de digitação
-- [ ] Status online/offline
-- [ ] Histórico de mensagens
-- [ ] Notificações push
-- [ ] Testes unitários e E2E
-- [ ] CI/CD Pipeline
-
-## 🤝 Contribuindo
-
-Contribuições são bem-vindas! Siga os passos:
-
-1. Fork o projeto
-2. Crie uma branch para sua feature (`git checkout -b feature/MinhaFeature`)
-3. Commit suas mudanças (`git commit -m 'Adiciona MinhaFeature'`)
-4. Push para a branch (`git push origin feature/MinhaFeature`)
-5. Abra um Pull Request
+- Visão técnica completa: [`chat-app/README.md`](chat-app/README.md)
+- Arquitetura visual e fluxos: [`chat-app/docs/ARCHITECTURE.md`](chat-app/docs/ARCHITECTURE.md)
+- Documentação detalhada por módulo: [`chat-app/DOCUMENTACAO.md`](chat-app/DOCUMENTACAO.md)
 
 ## 📝 Licença
 
-Este projeto é um projeto de estudo e está disponível sob a licença ISC.
+Este projeto é distribuído sob **AGPL-3.0** com termos adicionais descritos em [`chat-app/LICENSE`](chat-app/LICENSE). Para uso comercial, consulte o autor.
 
 ## 👨‍💻 Autor
 
-**Cleber Farias**
-
-- GitHub: [@cleberfarias](https://github.com/cleberfarias)
-
-## 🙏 Agradecimentos
-
-- [Vue.js](https://vuejs.org/) - Framework incrível
-- [Socket.IO](https://socket.io/) - WebSockets simplificados
-- [Vuetify](https://vuetifyjs.com/) - Componentes lindos
-- [TypeScript](https://www.typescriptlang.org/) - Type safety
-- [Docker](https://www.docker.com/) - Containerização
-- Comunidade open source 💚
-
----
+**Cleber Farias** — cleberfarias@gmail.com | [@cleberfarias](https://github.com/cleberfarias)
 
 ⭐️ Se este projeto foi útil para seus estudos, considere dar uma estrela!
-
-**Status:** 🚧 Em desenvolvimento  
-**Criado em:** Novembro de 2025  
-**Última atualização:** Novembro de 2025
