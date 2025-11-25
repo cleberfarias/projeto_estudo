@@ -61,11 +61,11 @@ clean-volumes: ## Remove apenas os volumes
 	@echo "$(YELLOW)Removendo volumes...$(RESET)"
 	docker-compose down -v
 
-install-backend: ## Instala dependências do backend
+install-backend: ## Instala dependências do backend (Python)
 	@echo "$(GREEN)Instalando dependências do backend...$(RESET)"
-	cd backend && npm install
+	cd backend && pip install -r requirements.txt
 
-install-frontend: ## Instala dependências do frontend
+install-frontend: ## Instala dependências do frontend (Node.js)
 	@echo "$(GREEN)Instalando dependências do frontend...$(RESET)"
 	cd frontend && npm install
 
@@ -73,16 +73,16 @@ install: install-backend install-frontend ## Instala todas as dependências
 
 dev-backend: ## Roda backend localmente (sem Docker)
 	@echo "$(GREEN)Iniciando backend em modo dev...$(RESET)"
-	cd backend && npm run dev
+	cd backend && uvicorn main:app --reload --host 0.0.0.0 --port 3000
 
 dev-frontend: ## Roda frontend localmente (sem Docker)
 	@echo "$(GREEN)Iniciando frontend em modo dev...$(RESET)"
 	cd frontend && npm run dev
 
-shell-api: ## Abre shell no container do backend
-	docker-compose exec api sh
+shell-api: ## Abre shell no container do backend (Python)
+	docker-compose exec api bash
 
-shell-web: ## Abre shell no container do frontend
+shell-web: ## Abre shell no container do frontend (Node.js)
 	docker-compose exec web sh
 
 health: ## Verifica se os serviços estão rodando
