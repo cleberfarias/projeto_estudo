@@ -91,6 +91,9 @@ npm run dev -- --host --port 5173
 
 ## 🧩 Estrutura do Projeto
 
+<img width="1189" height="275" alt="arquitetura-core" src="https://github.com/user-attachments/assets/328f1b1d-579e-43d3-ad77-d1f5e4ea10e6" />
+
+
 ```
 chat-app/
 ├── backend/                      # FastAPI + python-socketio + Mongo (Motor)
