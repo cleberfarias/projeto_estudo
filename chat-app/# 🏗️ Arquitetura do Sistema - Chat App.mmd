@@ -1,0 +1,42 @@
+flowchart TD
+    subgraph Camada1["🎨 CAMADA 1: APLICAÇÃO"]
+        direction TB
+        FE["Frontend<br/>Vue 3 + TypeScript"]
+        BE["Backend<br/>FastAPI + Python"]
+        DEVOPS["DevOps<br/>Docker Compose"]
+    end
+    
+    subgraph Camada2["⚙️ CAMADA 2: SERVIÇOS INTERNOS"]
+        direction TB
+        WS["WebSocket<br/>Real-time"]
+        BOT["Sistema IA<br/>GPT + NLU"]
+        DB[("MongoDB<br/>Database")]
+        S3[("MinIO<br/>Storage")]
+    end
+    
+    subgraph Camada3["🌐 CAMADA 3: SERVIÇOS EXTERNOS"]
+        direction TB
+        GCAL["Google Calendar"]
+        WA["WhatsApp"]
+        OPENAI["OpenAI API"]
+    end
+    
+    FE --> BE
+    BE --> WS
+    BE --> BOT
+    BE --> DB
+    BE --> S3
+    
+    BOT --> OPENAI
+    BE --> GCAL
+    BE --> WA
+    
+    DEVOPS -.->|Orquestra e gerencia| FE
+    DEVOPS -.->|Orquestra e gerencia| BE
+    DEVOPS -.->|Orquestra e gerencia| WS
+    DEVOPS -.->|Orquestra e gerencia| DB
+    DEVOPS -.->|Orquestra e gerencia| S3
+    
+    style Camada1 fill:#e3f2fd,stroke:#1976d2,stroke-width:2px
+    style Camada2 fill:#fff3e0,stroke:#f57c00,stroke-width:2px
+    style Camada3 fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px

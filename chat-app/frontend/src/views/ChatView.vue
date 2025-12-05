@@ -212,7 +212,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch, onMounted, onBeforeUnmount, computed, nextTick } from 'vue';
+import { ref, watch, onMounted, onBeforeUnmount, computed } from 'vue';
 import { useRouter } from 'vue-router';
 import MessageList from '../features/chat/components/MessageList.vue';
 import DSChatInput from '../design-system/components/DSChatInput';
@@ -225,7 +225,7 @@ import { useChatStore } from '../stores/chat';
 import { useAuthStore } from '../stores/auth';
 import { useContactsStore } from '../stores/contacts';
 import { useScrollToBottom } from '../design-system/composables/useScrollToBottom.ts';
-import { colors, spacing } from '../design-system/tokens/index.ts';
+import { colors } from '../design-system/tokens/index.ts';
 import { uploadAndSend } from '../composables/useUpload';
 import type { Contact } from '../stores/contacts';
 import { DSCommandBar } from '../design-system/components/DSCommandBar';

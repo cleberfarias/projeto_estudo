@@ -269,7 +269,7 @@ onMounted(() => {
         <v-chip-group
           v-model="selectedPriority"
           filter
-          mandatory={false}
+          :mandatory="false"
           @update:modelValue="loadHandovers"
         >
           <v-chip :value="null">Todas</v-chip>
