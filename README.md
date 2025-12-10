@@ -57,7 +57,6 @@ OPENAI_API_KEY="sua-chave-openai"
 DEFAULT_AGENT_KEY="guru"          # agente padrão exibido no painel
 ASSISTANT_CORE_ENABLED="true"
 ✨ Recursos
-
 ✅ Tempo real com Socket.IO (WebSocket)
 
 ✅ Histórico persistido em MongoDB (índice por createdAt + paginação)
@@ -74,18 +73,14 @@ ASSISTANT_CORE_ENABLED="true"
 
 ✅ Docker Compose para subir tudo localmente
 
-## 🏗️ Arquitetura (Visão Geral)
+🏗️ Arquitetura (Visão Geral)
 
-![Arquitetura Core — Cliente ⇄ Servidor ⇄ Dados](./arquitetura-core.png)
-
-> Fluxo principal: Cliente (Vue 3 + Pinia/Vuetify) ⇄ Servidor (FastAPI + Socket.IO) ⇄ Dados (MongoDB + MinIO/S3).
-> Mensagens em tempo real via WebSocket, REST para auth/mensagens/uploads e uploads diretos para o storage via URL pré-assinada.
-
+Fluxo principal: Cliente (Vue 3 + Pinia/Vuetify) ⇄ Servidor (FastAPI + Socket.IO) ⇄ Dados (MongoDB + MinIO/S3).
+Mensagens em tempo real via WebSocket, REST para auth/mensagens/uploads e uploads diretos para o storage via URL pré-assinada.
 
 📋 Pré-requisitos
+Docker e Docker Compose
 
-Docker
- e Docker Compose
 OU ambiente local com:
 
 Python 3.11+
@@ -96,6 +91,8 @@ MongoDB 6+ (com Replica Set ativo se for usar change streams)
 
 🚀 Início Rápido
 1) Com Docker (recomendado)
+bash
+Copiar código
 # 1. Clone o repositório
 git clone https://github.com/cleberfarias/projeto_estudo.git
 cd projeto_estudo/chat-app
@@ -105,8 +102,6 @@ docker compose up -d --build
 
 # 3. (Apenas na 1ª vez) Inicie o Replica Set do Mongo
 docker compose exec mongo mongosh --eval 'rs.initiate({_id:"rs0",members:[{_id:0,host:"mongo:27017"}]})'
-
-
 Depois disso:
 
 Frontend disponível em: http://localhost:5173
