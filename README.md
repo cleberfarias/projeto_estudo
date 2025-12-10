@@ -35,6 +35,22 @@ Benefícios para desenvolvedores e equipes:
 - Fornece exemplos claros para evolução (adicionar rooms, notificações push, E2E tests, observabilidade).
 
 ---
+## 🧭 IA como Core (Assistente Principal)
+
+Este projeto prioriza a Inteligência Artificial como peça central da experiência de atendimento — o Assistente IA é a interface principal para suporte, vendas e operações. A aplicação vem com agentes pré-configurados (Guru, Advogado, Vendedor, Médico, Psicólogo), porém você pode criar ágeis bots personalizados com comportamento, prompts e credenciais independentes.
+
+Principais recursos do Assistente IA:
+- Respostas context-aware: os agentes mantêm contexto parcial da conversa para respostas mais coerentes.
+- Automação de agendamentos, sugestões e ações: operações automatizadas via agentes (ex.: SDR auto-agendamento).
+- Multicanal: os agentes podem atuar em canais Omnichannel (WhatsApp/Instagram/FB) via webhook/integrations.
+- Extensível: crie bots com prompts customizados e credenciais OpenAI por bot.
+
+Como ativar e configurar (exemplo):
+```bash
+# No Docker Compose / .env
+OPENAI_API_KEY="sua-chave-openai"
+DEFAULT_AGENT_KEY="guru"               # agente padrão exibido no painel
+ASSISTANT_CORE_ENABLED="true"   
 
 ## ✨ Recursos
 
