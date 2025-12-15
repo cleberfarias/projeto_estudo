@@ -98,7 +98,7 @@ ASSISTANT_CORE_ENABLED="true"
 ```bash
 # 1. Clone
 git clone https://github.com/cleberfarias/chatIA_app
-cd pad-chat-ia/chat-app
+cd chatIA_app/chat-app
 
 # 2. Suba os serviços
 docker compose up -d --build

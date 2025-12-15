@@ -82,7 +82,7 @@ Benefícios para desenvolvedores e equipes:
 ```bash
 # 1. Clone
 git clone https://github.com/cleberfarias/chatIA_app
-cd pad-chat-ia/chat-app
+cd chatIA_app/chat-app
 
 # 2. Suba os serviços
 docker compose up -d --build
@@ -202,7 +202,7 @@ flowchart TB
 ```bash
 # 1. Clone o repositório
 git clone https://github.com/cleberfarias/chatIA_app
-cd pad-chat-ia/chat-app
+cd chatIA_app/chat-app
 
 # 2. Inicie os containers
 docker-compose up
