@@ -560,8 +560,8 @@ function onRequestSummary() {
   display: flex;
   gap: var(--ds-spacing-sm);
   padding: var(--ds-spacing-md);
-  border-top: 1px solid var(--ds-color-border);
-  background: var(--ds-color-chat-background);
+  border-top: none;
+  background: transparent;
 }
 
 .agent-suggestions {
@@ -586,17 +586,32 @@ function onRequestSummary() {
 .agent-input-field {
   flex: 1;
   padding: var(--ds-spacing-sm) var(--ds-spacing-md);
-  border: 1px solid var(--ds-color-border);
-  border-radius: var(--ds-radius-xl);
+  border: none;
+  border-radius: 24px;
   font-size: var(--ds-font-size-sm);
   outline: none;
-  transition: border-color 0.2s;
-  background: var(--ds-color-chat-background);
+  transition: box-shadow 0.2s ease;
+  background: #ffffff;
   color: var(--ds-color-text-primary);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12), 0 1px 3px rgba(0, 0, 0, 0.08);
 }
 
 .agent-input-field:focus {
-  border-color: var(--ds-color-primary);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15), 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+:global(.v-theme--dark) .agent-input-field {
+  background: #2a3942;
+  color: #e9edef;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4), 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+:global(.v-theme--dark) .agent-input-field:focus {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5), 0 2px 4px rgba(0, 0, 0, 0.35);
+}
+
+:global(.v-theme--dark) .agent-input-field::placeholder {
+  color: rgba(174, 186, 193, 0.6);
 }
 
 .agent-send-btn {

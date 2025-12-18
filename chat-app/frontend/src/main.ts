@@ -24,11 +24,38 @@ import './design-system/styles/utilities.scss'
 import ChatLayoutView from './views/ChatLayoutView.vue';
 import LoginView from './views/LoginView.vue';
 
+// CRM Views
+import ContactsView from './views/crm/ContactsView.vue';
+import ConversationsView from './views/crm/ConversationsView.vue';
+import CRMView from './views/crm/CRMView.vue';
+import GroupsView from './views/crm/GroupsView.vue';
+import AnalyticsView from './views/crm/AnalyticsView.vue';
+import ReportsView from './views/crm/ReportsView.vue';
+import AgentsView from './views/crm/AgentsView.vue';
+
 const vuetify = createVuetify({
   components,
   directives,
   icons: {
     defaultSet: 'mdi',
+  },
+  theme: {
+    defaultTheme: 'light',
+    themes: {
+      light: {
+        colors: {
+          primary: '#1976D2',
+          secondary: '#424242',
+          accent: '#82B1FF',
+          error: '#FF5252',
+          info: '#2196F3',
+          success: '#4CAF50',
+          warning: '#FB8C00',
+          background: '#e5ddd5',
+          surface: '#ffffff',
+        },
+      },
+    },
   },
 })
 const pinia = createPinia()
@@ -37,12 +64,48 @@ const router = createRouter({
   routes: [
     { 
       path: '/', 
+      redirect: '/crm',
+      meta: { requiresAuth: true }
+    },
+    { 
+      path: '/chat', 
       component: ChatLayoutView,
       meta: { requiresAuth: true }
     },
     { 
       path: '/login', 
       component: LoginView 
+    },
+    // Rotas CRM
+    {
+      path: '/contatos',
+      component: ContactsView,
+      meta: { requiresAuth: true }
+    },
+    {
+      path: '/bots',
+      component: AgentsView,
+      meta: { requiresAuth: true }
+    },
+    {
+      path: '/crm',
+      component: CRMView,
+      meta: { requiresAuth: true }
+    },
+    {
+      path: '/grupos',
+      component: GroupsView,
+      meta: { requiresAuth: true }
+    },
+    {
+      path: '/analytics',
+      component: AnalyticsView,
+      meta: { requiresAuth: true }
+    },
+    {
+      path: '/relatorios',
+      component: ReportsView,
+      meta: { requiresAuth: true }
     }
   ]
 })

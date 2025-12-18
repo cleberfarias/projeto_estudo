@@ -22,7 +22,8 @@ describe('DSChatInput', () => {
         }
       })
 
-      expect(wrapper.find('.ds-chat-input__attach-btn').exists()).toBe(true)
+      expect(wrapper.find('.ds-chat-input__left-icons').exists()).toBe(true)
+      expect(wrapper.find('.ds-chat-input__icon-btn').exists()).toBe(true)
     })
 
     it('renderiza botão de enviar', () => {
@@ -32,7 +33,7 @@ describe('DSChatInput', () => {
         }
       })
 
-      expect(wrapper.find('.ds-chat-input__send-btn').exists()).toBe(true)
+      expect(wrapper.find('.ds-chat-input__action-btn').exists()).toBe(true)
     })
   })
 
@@ -67,7 +68,7 @@ describe('DSChatInput', () => {
         }
       })
 
-      await wrapper.find('.ds-chat-input__send-btn').trigger('click')
+      await wrapper.find('.ds-chat-input__action-btn').trigger('click')
 
       expect(wrapper.emitted('submit')).toBeTruthy()
       expect(wrapper.emitted('submit')?.length).toBe(1)

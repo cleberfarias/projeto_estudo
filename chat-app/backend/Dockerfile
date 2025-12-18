@@ -14,9 +14,12 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
+# Cria usuário não-root primeiro
+RUN useradd -m -u 1000 appuser
+
 # Copia apenas os pacotes Python compilados do builder
-COPY --from=builder /root/.local /root/.local
-ENV PATH=/root/.local/bin:$PATH
+COPY --from=builder /root/.local /home/appuser/.local
+RUN chown -R appuser:appuser /home/appuser/.local
 
 # Instala apenas curl (essencial para healthcheck)
 RUN apt-get update && apt-get install -y --no-install-recommends curl \
@@ -24,11 +27,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends curl \
     && apt-get clean
 
 # Copia código da aplicação
-COPY . .
+COPY --chown=appuser:appuser . .
 
-# Cria usuário não-root para maior segurança
-RUN useradd -m -u 1000 appuser && chown -R appuser:appuser /app
+# Muda para usuário não-root
 USER appuser
+ENV PATH=/home/appuser/.local/bin:$PATH
 
 EXPOSE 3000
 
