@@ -147,7 +147,7 @@ onMounted(async () => {
 .chat-layout {
   display: flex;
   flex-direction: column;
-  height: 100vh;
+  height: 100%;
   width: 100%;
   overflow: hidden;
   position: relative;
@@ -200,8 +200,9 @@ onMounted(async () => {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #f5f5f5;
+  background: rgb(var(--v-theme-background));
   overflow: hidden;
+  position: relative;
 }
 
 .empty-state {
@@ -211,6 +212,7 @@ onMounted(async () => {
   justify-content: center;
   text-align: center;
   padding: 32px;
+  background: transparent;
 }
 
 .loading-container {
@@ -220,7 +222,7 @@ onMounted(async () => {
   justify-content: center;
   height: 100vh;
   width: 100%;
-  background: #f5f5f5;
+  background: rgb(var(--v-theme-background));
 }
 
 /* Mobile: Layout responsivo mobile-first */

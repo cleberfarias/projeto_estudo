@@ -165,11 +165,20 @@ function onCommand(cmd: string) {
 
 <style scoped>
 .guru-commands-bar {
-  background: linear-gradient(135deg, color-mix(in srgb, var(--ds-color-info) 15%, var(--ds-color-chat-background) 85%) 0%, color-mix(in srgb, var(--ds-color-info) 25%, var(--ds-color-chat-background) 75%) 100%);
-  border-bottom: 1px solid color-mix(in srgb, var(--ds-color-info) 40%, var(--ds-color-border) 60%);
-  padding: var(--ds-spacing-sm) var(--ds-spacing-sm);
+  background: #ffffff;
+  border: none;
+  border-radius: 16px;
+  padding: var(--ds-spacing-md);
+  margin: var(--ds-spacing-md);
+  max-height: 200px;
   overflow-x: auto;
-  overflow-y: hidden;
+  overflow-y: auto;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12), 0 1px 3px rgba(0, 0, 0, 0.08);
+  transition: box-shadow 0.2s ease;
+}
+
+.guru-commands-bar:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15), 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .guru-commands-content {

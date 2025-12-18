@@ -19,9 +19,12 @@ export interface CustomBotSummary {
   createdAt?: string;
 }
 
+// Estado compartilhado (singleton) - todos os componentes veem os mesmos dados
+const loading = ref(false);
+const error = ref<string | null>(null);
+const bots = ref<CustomBotSummary[]>([]);
+
 export function useCustomBots() {
-  const loading = ref(false);
-  const error = ref<string | null>(null);
 
   const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
@@ -48,6 +51,16 @@ export function useCustomBots() {
     }
   };
 
+  const refreshBots = async () => {
+    try {
+      const result = await listBots();
+      bots.value = result;
+    } catch (err) {
+      console.error('Erro ao atualizar bots:', err);
+      bots.value = [];
+    }
+  };
+
   const createBot = async (payload: CustomBotPayload): Promise<CustomBotSummary> => {
     loading.value = true;
     error.value = null;
@@ -64,7 +77,14 @@ export function useCustomBots() {
         },
         { headers: { ...authHeaders(), 'Content-Type': 'application/json' } }
       );
-      return data?.bot;
+      
+      // Adiciona o bot criado à lista automaticamente
+      const newBot = data?.bot;
+      if (newBot) {
+        bots.value.push(newBot);
+      }
+      
+      return newBot;
     } catch (err: any) {
       error.value = err?.response?.data?.detail || 'Erro ao criar bot';
       throw err;
@@ -80,6 +100,9 @@ export function useCustomBots() {
       await axios.delete(`${apiBase}/custom-bots/${botKey}`, {
         headers: authHeaders()
       });
+      
+      // Remove o bot da lista automaticamente
+      bots.value = bots.value.filter(bot => bot.key !== botKey);
     } catch (err: any) {
       error.value = err?.response?.data?.detail || 'Erro ao remover bot';
       throw err;
@@ -89,9 +112,11 @@ export function useCustomBots() {
   };
 
   return {
+    bots,
     loading,
     error,
     listBots,
+    refreshBots,
     createBot,
     deleteBot
   };

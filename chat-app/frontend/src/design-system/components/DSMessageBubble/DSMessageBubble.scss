@@ -28,13 +28,16 @@
 }
 
 .ds-message-bubble--sent {
-  background: var(--ds-color-sent-message);
+  background: #dcf8c6;
   border-top-right-radius: 0;
+  margin-left: auto;
 }
 
 .ds-message-bubble--received {
-  background: var(--ds-color-received-message);
+  background: #ffffff;
   border-top-left-radius: 0;
+  margin-right: auto;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
 }
 
 .ds-message-bubble__author {

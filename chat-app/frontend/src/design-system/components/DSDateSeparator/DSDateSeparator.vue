@@ -57,7 +57,7 @@ const formattedDate = computed(() => {
 
 .date-chip {
   position: absolute;
-  background: white;
+  background: rgb(var(--v-theme-surface));
   font-size: 12px;
   font-weight: 500;
   text-transform: capitalize;

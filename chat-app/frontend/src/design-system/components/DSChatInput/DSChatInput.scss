@@ -1,21 +1,62 @@
 .ds-chat-input {
   width: 100%;
-  background: var(--ds-color-input-background);
-  border-top: 1px solid var(--ds-color-border);
+  background: transparent;
+  padding: var(--ds-spacing-md) var(--ds-spacing-md) var(--ds-spacing-md) var(--ds-spacing-md);
 }
 
 .ds-chat-input__form {
   display: flex;
   align-items: center;
-  gap: var(--ds-spacing-sm);
-  padding: var(--ds-spacing-sm);
+  gap: var(--ds-spacing-xs);
+  background: #ffffff;
+  border-radius: 24px;
+  padding: var(--ds-spacing-xs) var(--ds-spacing-sm);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12), 0 1px 3px rgba(0, 0, 0, 0.08);
+  transition: box-shadow 0.2s ease;
+
+  &:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15), 0 2px 4px rgba(0, 0, 0, 0.1);
+  }
+}
+
+.ds-chat-input__left-icons {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding-left: var(--ds-spacing-xs);
+}
+
+.ds-chat-input__icon-btn {
+  opacity: 0.7;
+  transition: opacity 0.2s ease;
+
+  &:hover {
+    opacity: 1;
+  }
+}
+
+.ds-chat-input__input-wrapper {
+  flex: 1;
+  padding: 0 var(--ds-spacing-xs);
 }
 
 .ds-chat-input__field {
-  flex: 1 1 auto;
+  :deep(.v-field__input) {
+    padding: 8px 0;
+    min-height: 36px;
+  }
+
+  :deep(.v-field__field) {
+    padding: 0;
+  }
+
+  :deep(.v-field__outline) {
+    display: none;
+  }
 }
 
-.ds-chat-input__send-btn {
+.ds-chat-input__action-btn {
+  flex-shrink: 0;
   position: relative;
 }
 
@@ -27,21 +68,74 @@
   pointer-events: none;
 }
 
-.ds-chat-input__attach-btn {
-  transition: transform 0.2s ease;
+.ds-chat-input__form--recording {
+  background: #f0f2f5 !important;
 }
 
-.ds-chat-input__attach-icon {
-  transform: rotate(135deg);
-  transition: transform 0.2s ease;
+.recording-delete-btn {
+  color: #54656f !important;
+  flex-shrink: 0;
 }
 
-.ds-chat-input__attach-btn:hover .ds-chat-input__attach-icon {
-  transform: rotate(135deg) scale(1.1);
+.recording-content-inline {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: var(--ds-spacing-sm);
+  min-width: 0;
 }
 
-@media (hover: none) and (pointer: coarse) {
-  .ds-chat-input__attach-btn:active .ds-chat-input__attach-icon {
-    transform: rotate(135deg) scale(0.95);
+.recording-dot-pulse {
+  width: 8px;
+  height: 8px;
+  background: #f44336;
+  border-radius: 50%;
+  animation: pulse-recording 1.5s ease-in-out infinite;
+  flex-shrink: 0;
+}
+
+@keyframes pulse-recording {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.5;
+    transform: scale(0.9);
+  }
+}
+
+.recording-time-inline {
+  color: #f44336;
+  font-size: 14px;
+  font-weight: 500;
+  min-width: 50px;
+  flex-shrink: 0;
+}
+
+.recording-wave-inline {
+  display: flex;
+  align-items: center;
+  gap: 1px;
+  height: 24px;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.wave-bar-inline {
+  width: 2px;
+  min-height: 4px;
+  background: #54656f;
+  border-radius: 2px;
+  animation: wave-pulse-inline 1.2s ease-in-out infinite;
+}
+
+@keyframes wave-pulse-inline {
+  0%, 100% {
+    height: 4px;
+  }
+  50% {
+    height: 20px;
   }
 }

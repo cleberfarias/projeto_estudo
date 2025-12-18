@@ -1,0 +1,68 @@
+// Mixin para cards padronizados do CRM
+@mixin crm-card {
+  border-radius: var(--ds-radius-md);
+  box-shadow: var(--ds-shadow-md);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--ds-shadow-lg);
+  }
+}
+
+// Mixin para headers de páginas CRM
+@mixin crm-page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--ds-spacing-xxl);
+  flex-wrap: wrap;
+  gap: var(--ds-spacing-lg);
+}
+
+// Mixin para padding de páginas CRM
+@mixin crm-page-padding {
+  padding: var(--ds-spacing-xxl);
+  background: rgb(var(--v-theme-background));
+  min-height: 100vh;
+  
+  @media (max-width: 960px) {
+    padding: var(--ds-spacing-lg);
+  }
+}
+
+// Classes utilitárias para CRM
+.crm-metric-card {
+  @include crm-card;
+  padding: var(--ds-spacing-lg);
+  
+  &__value {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--ds-color-text-primary);
+    margin: var(--ds-spacing-sm) 0;
+  }
+  
+  &__label {
+    font-size: 0.875rem;
+    color: var(--ds-color-text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  
+  &__trend {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--ds-spacing-xs);
+    font-size: 0.75rem;
+    margin-top: var(--ds-spacing-sm);
+    
+    &--positive {
+      color: var(--ds-color-success);
+    }
+    
+    &--negative {
+      color: var(--ds-color-error);
+    }
+  }
+}

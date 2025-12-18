@@ -184,14 +184,15 @@ onMounted(() => {
   height: 100%;
   display: flex;
   flex-direction: column;
-  background: var(--ds-color-chat-background);
+  background: #ffffff;
   overflow: hidden;
 }
 
 /* Search wrapper */
 .search-wrapper {
   padding: var(--ds-spacing-md) var(--ds-spacing-lg) var(--ds-spacing-sm) var(--ds-spacing-lg);
-  background: var(--ds-color-chat-background);
+  background: #f5f5f5;
+  border-bottom: 1px solid #e0e0e0;
   flex-shrink: 0;
 }
 
@@ -225,23 +226,24 @@ onMounted(() => {
   flex: 1;
   overflow-y: auto;
   overflow-x: hidden;
-  background: var(--ds-color-chat-background);
+  background: #ffffff;
   -webkit-overflow-scrolling: touch;
 }
 
 .contact-item {
-  border-bottom: 1px solid var(--ds-color-divider);
+  border-bottom: 1px solid rgba(var(--v-theme-on-surface-rgb), 0.08);
   cursor: pointer;
-  transition: background 0.2s;
+  transition: all 0.2s ease;
   padding: var(--ds-spacing-md) var(--ds-spacing-lg);
 }
 
 .contact-item:hover {
-  background: color-mix(in srgb, var(--ds-color-border) 20%, var(--ds-color-chat-background) 80%);
+  background: rgba(var(--v-theme-on-surface-rgb), 0.05) !important;
 }
 
 .contact-item.v-list-item--active {
-  background: color-mix(in srgb, var(--ds-color-primary) 10%, var(--ds-color-chat-background) 90%);
+  background: rgba(var(--v-theme-primary-rgb), 0.15) !important;
+  border-left: 3px solid rgb(var(--v-theme-primary));
 }
 
 .text-truncate {

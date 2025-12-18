@@ -46,6 +46,21 @@
       </v-fab>
     </div>
 
+    <!-- 🧠 CHIPS DE COMANDOS DO GURU (fora do input wrapper) -->
+    <Transition
+      enter-active-class="animate__animated animate__bounceIn animate__faster"
+      leave-active-class="animate__animated animate__zoomOut animate__faster"
+    >
+      <DSCommandBar 
+        v-if="showGuruCommands" 
+        v-model="showGuruCommands" 
+        @command="insertCommand" 
+        :extra-chips="agentChips"
+        @open-agent="(key) => openAgentPanel(key)"
+        class="command-bar-floating"
+      />
+    </Transition>
+
     <!-- INPUT DE MENSAGEM -->
     <div class="chat-input-wrapper">
       <!-- 🧠 BANNER DE SESSÃO ATIVA -->
@@ -66,20 +81,6 @@
           </v-btn>
         </div>
       </div>
-      
-      <!-- 🧠 CHIPS DE COMANDOS DO GURU -->
-      <Transition
-        enter-active-class="animate__animated animate__bounceIn animate__faster"
-        leave-active-class="animate__animated animate__zoomOut animate__faster"
-      >
-        <DSCommandBar 
-          v-if="showGuruCommands" 
-          v-model="showGuruCommands" 
-          @command="insertCommand" 
-          :extra-chips="agentChips"
-          @open-agent="(key) => openAgentPanel(key)"
-        />
-      </Transition>
 
       <!-- 🔘 Botão Guru flutuante -->
       <v-btn
@@ -107,10 +108,14 @@
         v-model="text"
         :uploading="uploadingFile"
         :upload-progress="uploadProgress"
+        :recording="isRecordingAudio"
+        :recording-time="recordingTimeFormatted"
         @submit="(msg: string) => { console.log('📤 DSChatInput @submit:', msg); handleSendMessage(msg); }"
         @typing="handleTyping"
         @emoji="() => {}"
-        @voice="showVoiceRecorder = true"
+        @voice="startRecording"
+        @cancel-recording="cancelRecording"
+        @send-recording="sendRecording"
       >
         <template #attach-btn>
           <!-- Menu de Anexos estilo WhatsApp -->
@@ -136,11 +141,13 @@
       </DSChatInput>
     </div>
 
-    <!-- GRAVADOR DE VOZ -->
-    <DSVoiceRecorder
+    <!-- GRAVADOR DE VOZ (oculto, não usado mais) -->
+    <!-- <DSVoiceRecorder
       v-model="showVoiceRecorder"
-      @audio-recorded="handleAudioRecorded"
-    />
+      @audio-recorded="(blob: Blob) => { currentRecordingBlob = blob; }"
+      @recording-changed="(recording: boolean) => isRecordingAudio = recording"
+      @recording-time="(time: string) => recordingTimeFormatted = time"
+    /> -->
 
     <!-- CRIADOR DE AGENTE PERSONALIZADO -->
     <CustomBotCreator
@@ -237,6 +244,7 @@ import { uploadAndSend } from '../composables/useUpload';
 import type { Contact } from '../stores/contacts';
 // types for agents moved to local shapes (title) — no direct import needed here
 import { DSCommandBar } from '../design-system/components/DSCommandBar';
+import { useCustomBots } from '../composables/useCustomBots';
 
 // 🆕 Props
 interface Props {
@@ -248,6 +256,7 @@ const router = useRouter();
 const chatStore = useChatStore();
 const authStore = useAuthStore();
 const contactsStore = useContactsStore();
+const { bots } = useCustomBots();
 const author = ref('');
 const text = ref('');
 const showNameDialog = ref(false); // Não mostra mais o dialog de nome
@@ -258,6 +267,13 @@ const isScrolledToBottom = ref(true);
 const lastScrollTop = ref(0);
 const showAttachmentMenu = ref(false);
 const showVoiceRecorder = ref(false);
+const isRecordingAudio = ref(false);
+const recordingTimeFormatted = ref('0:00');
+const currentRecordingBlob = ref<Blob | null>(null);
+const mediaRecorder = ref<MediaRecorder | null>(null);
+const audioChunks = ref<Blob[]>([]);
+const timerInterval = ref<number | null>(null);
+const recordingSeconds = ref(0);
 const showBotCreator = ref(false);
 const showWppConnectDialog = ref(false);
 const showGuruCommands = ref(false); // 🧠 Mostra chips do Guru apenas quando clicar no botão
@@ -270,6 +286,15 @@ const uploadingFile = ref(false);
 const uploadProgress = ref(0);
 
 const { containerRef, scrollToBottom } = useScrollToBottom();
+
+// Sincroniza agentChips com o estado global de bots
+watch(bots, (newBots) => {
+  agentChips.value = newBots.map((bot: any) => ({
+    key: bot.key,
+    title: bot.name,
+    emoji: bot.emoji || '🤖'
+  }));
+}, { immediate: true });
 
 // 🆕 Estado para painéis de agente (chat-in-chat) vinculados por contactId
 // Estrutura: { contactId: [{ key, title, emoji, minimized }] }
@@ -675,6 +700,94 @@ async function handleAudioRecorded(audioBlob: Blob) {
   });
   
   await handleFileUpload(audioFile);
+}
+
+async function startRecording() {
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    
+    mediaRecorder.value = new MediaRecorder(stream);
+    audioChunks.value = [];
+    
+    mediaRecorder.value.ondataavailable = (event) => {
+      if (event.data.size > 0) {
+        audioChunks.value.push(event.data);
+      }
+    };
+    
+    mediaRecorder.value.onstop = () => {
+      const blob = new Blob(audioChunks.value, { type: 'audio/webm' });
+      currentRecordingBlob.value = blob;
+      stream.getTracks().forEach(track => track.stop());
+    };
+    
+    mediaRecorder.value.start();
+    isRecordingAudio.value = true;
+    recordingSeconds.value = 0;
+    
+    // Timer
+    timerInterval.value = window.setInterval(() => {
+      recordingSeconds.value++;
+      const mins = Math.floor(recordingSeconds.value / 60);
+      const secs = recordingSeconds.value % 60;
+      recordingTimeFormatted.value = `${mins}:${secs.toString().padStart(2, '0')}`;
+      
+      // Limita a 5 minutos
+      if (recordingSeconds.value >= 300) {
+        stopAndSendRecording();
+      }
+    }, 1000);
+    
+  } catch (error) {
+    console.error('Erro ao iniciar gravação:', error);
+    isRecordingAudio.value = false;
+  }
+}
+
+function stopAndSendRecording() {
+  if (mediaRecorder.value && isRecordingAudio.value) {
+    mediaRecorder.value.stop();
+    isRecordingAudio.value = false;
+    
+    if (timerInterval.value) {
+      clearInterval(timerInterval.value);
+      timerInterval.value = null;
+    }
+  }
+}
+
+function cancelRecording() {
+  if (mediaRecorder.value && isRecordingAudio.value) {
+    mediaRecorder.value.stop();
+    
+    if (mediaRecorder.value.stream) {
+      mediaRecorder.value.stream.getTracks().forEach(track => track.stop());
+    }
+  }
+  
+  if (timerInterval.value) {
+    clearInterval(timerInterval.value);
+    timerInterval.value = null;
+  }
+  
+  isRecordingAudio.value = false;
+  currentRecordingBlob.value = null;
+  recordingSeconds.value = 0;
+  recordingTimeFormatted.value = '0:00';
+}
+
+async function sendRecording() {
+  stopAndSendRecording();
+  
+  // Aguarda um pouco para garantir que o blob foi criado
+  await new Promise(resolve => setTimeout(resolve, 100));
+  
+  if (currentRecordingBlob.value) {
+    await handleAudioRecorded(currentRecordingBlob.value);
+    currentRecordingBlob.value = null;
+    recordingSeconds.value = 0;
+    recordingTimeFormatted.value = '0:00';
+  }
 }
 </script>
 

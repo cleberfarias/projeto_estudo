@@ -5,82 +5,87 @@
       <div v-if="isRecording && !audioBlob" class="recording-bar">
         <!-- Botão deletar/cancelar -->
         <v-btn
-          icon
-          size="40"
+          icon="mdi-delete-outline"
           variant="text"
+          size="small"
+          class="recording-bar__delete-btn"
           @click="handleCancel"
-        >
-          <v-icon color="white">mdi-delete</v-icon>
-        </v-btn>
+        />
 
         <!-- Visualização de ondas + Timer -->
         <div class="recording-content">
-          <div class="recording-wave">
-            <div class="wave-bar" v-for="i in 30" :key="i" :style="{ animationDelay: `${i * 0.05}s` }"></div>
-          </div>
+          <!-- Botão vermelho pulsante -->
+          <div class="recording-indicator"></div>
+          
+          <!-- Timer vermelho -->
           <span class="recording-time">{{ formattedTime }}</span>
+          
+          <!-- Waveform animada -->
+          <div class="recording-wave">
+            <div class="wave-bar" v-for="i in 50" :key="i" :style="{ animationDelay: `${i * 0.02}s` }"></div>
+          </div>
         </div>
 
-        <!-- Texto "Deslize para cancelar" -->
-        <div class="slide-to-cancel">
-          <v-icon size="16" color="rgba(255,255,255,0.6)">mdi-chevron-left</v-icon>
-          <span>Deslize para cancelar</span>
-        </div>
-
-        <!-- Botão enviar -->
+        <!-- Botão pausa -->
         <v-btn
-          icon
+          icon="mdi-pause"
+          variant="text"
+          size="small"
+          class="recording-bar__pause-btn"
+        />
+
+        <!-- Botão enviar verde -->
+        <v-btn
+          icon="mdi-send"
+          color="#25d366"
           size="48"
-          color="success"
           elevation="0"
+          class="recording-bar__send-btn"
           @click="stopRecording"
-        >
-          <v-icon color="white">mdi-send</v-icon>
-        </v-btn>
+        />
       </div>
 
       <!-- Barra de preview (após gravar) -->
       <div v-if="!isRecording && audioBlob" class="preview-bar">
         <!-- Botão deletar -->
         <v-btn
-          icon
-          size="40"
+          icon="mdi-delete-outline"
           variant="text"
+          size="small"
+          class="preview-bar__delete-btn"
           @click="deleteRecording"
-        >
-          <v-icon color="white">mdi-close</v-icon>
-        </v-btn>
+        />
 
         <!-- Visualização do áudio gravado -->
         <div class="audio-preview">
-          <v-btn
-            icon
-            size="32"
-            color="white"
-            variant="text"
-            @click="playAudio"
-          >
-            <v-icon color="success">{{ isPlaying ? 'mdi-pause' : 'mdi-play' }}</v-icon>
-          </v-btn>
+          <!-- Timer -->
+          <span class="audio-time">{{ formattedTime }}</span>
           
+          <!-- Waveform -->
           <div class="audio-waveform">
-            <div class="waveform-bar" v-for="i in 40" :key="i"></div>
+            <div class="waveform-bar" v-for="i in 50" :key="i"></div>
           </div>
           
-          <span class="audio-time">{{ formattedTime }}</span>
+          <!-- Play/Pause -->
+          <v-btn
+            :icon="isPlaying ? 'mdi-pause' : 'mdi-play'"
+            variant="text"
+            size="small"
+            class="preview-bar__play-btn"
+            @click="playAudio"
+          />
         </div>
 
-        <!-- Botão enviar -->
+        <!-- Botão enviar verde -->
         <v-btn
-          icon
+          icon="mdi-send"
+          color="#25d366"
           size="48"
-          color="success"
           elevation="0"
+          class="preview-bar__send-btn"
           @click="sendAudio"
           :loading="sending"
-        >
-          <v-icon color="white">mdi-send</v-icon>
-        </v-btn>
+        />
       </div>
 
       <!-- Mensagem de erro -->
@@ -108,6 +113,8 @@ const props = defineProps<Props>();
 const emit = defineEmits<{
   'update:modelValue': [value: boolean];
   'audio-recorded': [blob: Blob];
+  'recording-changed': [isRecording: boolean];
+  'recording-time': [time: string];
 }>();
 
 const isRecording = ref(false);
@@ -173,6 +180,7 @@ async function startRecording() {
     // Timer
     timerInterval.value = setInterval(() => {
       recordingTime.value++;
+      emit('recording-time', formattedTime.value);
       
       // Limita gravação a 5 minutos
       if (recordingTime.value >= 300) {
@@ -195,6 +203,7 @@ function stopRecording() {
   if (mediaRecorder.value && isRecording.value) {
     mediaRecorder.value.stop();
     isRecording.value = false;
+    emit('recording-changed', false);
     
     if (timerInterval.value) {
       clearInterval(timerInterval.value);
@@ -323,36 +332,91 @@ function cleanup() {
 
 /* Barra de gravação */
 .recording-bar {
-  background: color-mix(in srgb, var(--ds-color-text-primary) 90%, black);
-  padding: var(--ds-spacing-md) var(--ds-spacing-lg);
+  background: #f0f2f5;
+  padding: var(--ds-spacing-sm) var(--ds-spacing-md);
   display: flex;
   align-items: center;
-  gap: var(--ds-spacing-md);
-  box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.3);
+  gap: var(--ds-spacing-sm);
+  box-shadow: 0 -1px 3px rgba(0, 0, 0, 0.1);
+}
+
+:global(.v-theme--dark) .recording-bar {
+  background: #202c33;
+}
+
+.recording-bar__delete-btn {
+  color: #54656f !important;
+  flex-shrink: 0;
+}
+
+:global(.v-theme--dark) .recording-bar__delete-btn {
+  color: #aebac1 !important;
 }
 
 .recording-content {
   flex: 1;
   display: flex;
   align-items: center;
-  gap: var(--ds-spacing-md);
+  gap: var(--ds-spacing-sm);
+  min-width: 0;
+}
+
+/* Indicador vermelho pulsante */
+.recording-indicator {
+  width: 8px;
+  height: 8px;
+  background: #f44336;
+  border-radius: 50%;
+  animation: pulse 1.5s ease-in-out infinite;
+  flex-shrink: 0;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.5;
+    transform: scale(0.9);
+  }
 }
 
 /* Ondas de gravação */
 .recording-wave {
   display: flex;
   align-items: center;
-  gap: 2px;
-  height: 32px;
+  gap: 1px;
+  height: 24px;
   flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  padding: 0 var(--ds-spacing-xs);
 }
 
 .wave-bar {
-  width: 3px;
-  height: 8px;
-  background: rgba(255, 255, 255, 0.6);
+  width: 2px;
+  min-height: 4px;
+  background: #54656f;
   border-radius: 2px;
   animation: wave-pulse 1.2s ease-in-out infinite;
+}
+
+:global(.v-theme--dark) .wave-bar {
+  background: #667781;
+}
+
+.recording-bar__pause-btn {
+  color: #54656f !important;
+  flex-shrink: 0;
+}
+
+:global(.v-theme--dark) .recording-bar__pause-btn {
+  color: #aebac1 !important;
+}
+
+.recording-bar__send-btn {
+  flex-shrink: 0;
 }
 
 @keyframes wave-pulse {
@@ -368,11 +432,17 @@ function cleanup() {
 
 /* Timer de gravação */
 .recording-time {
-  color: rgba(255, 255, 255, 0.9);
-  font-size: 16px;
+  color: #f44336;
+  font-size: 14px;
   font-weight: 500;
   font-family: 'Roboto', sans-serif;
-  min-width: 60px;
+  min-width: 50px;
+  flex-shrink: 0;
+  text-align: center;
+}
+
+:global(.v-theme--dark) .recording-time {
+  color: #f44336;
 }
 
 /* Texto "Deslize para cancelar" */
@@ -391,37 +461,86 @@ function cleanup() {
 
 /* Barra de preview */
 .preview-bar {
-  background: color-mix(in srgb, var(--ds-color-text-primary) 90%, black);
-  padding: var(--ds-spacing-md) var(--ds-spacing-lg);
+  background: #f0f2f5;
+  padding: var(--ds-spacing-sm) var(--ds-spacing-md);
   display: flex;
   align-items: center;
-  gap: var(--ds-spacing-md);
-  box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.3);
+  gap: var(--ds-spacing-sm);
+  box-shadow: 0 -1px 3px rgba(0, 0, 0, 0.1);
+}
+
+:global(.v-theme--dark) .preview-bar {
+  background: #202c33;
+}
+
+.preview-bar__delete-btn {
+  color: #54656f !important;
+  flex-shrink: 0;
+}
+
+:global(.v-theme--dark) .preview-bar__delete-btn {
+  color: #aebac1 !important;
 }
 
 .audio-preview {
   flex: 1;
   display: flex;
   align-items: center;
-  gap: var(--ds-spacing-md);
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: var(--ds-radius-xl);
-  padding: var(--ds-spacing-sm) var(--ds-spacing-lg);
+  gap: var(--ds-spacing-sm);
+  min-width: 0;
+}
+
+.preview-bar__play-btn {
+  color: #54656f !important;
+  flex-shrink: 0;
+}
+
+:global(.v-theme--dark) .preview-bar__play-btn {
+  color: #aebac1 !important;
+}
+
+.preview-bar__send-btn {
+  flex-shrink: 0;
+}
+
+:global(.v-theme--dark) .audio-preview {
+  background: rgba(42, 57, 66, 0.5);
+}
+
+/* Timer do preview */
+.audio-time {
+  color: #54656f;
+  font-size: 13px;
+  font-weight: 400;
+  font-family: 'Roboto', sans-serif;
+  min-width: 40px;
+  flex-shrink: 0;
+}
+
+:global(.v-theme--dark) .audio-time {
+  color: #aebac1;
 }
 
 /* Waveform do áudio gravado */
 .audio-waveform {
   display: flex;
   align-items: center;
-  gap: 2px;
-  height: 32px;
+  gap: 1px;
+  height: 24px;
   flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  padding: 0 var(--ds-spacing-xs);
 }
 
 .waveform-bar {
   width: 2px;
-  background: var(--ds-color-success);
+  background: #54656f;
   border-radius: 1px;
+}
+
+:global(.v-theme--dark) .waveform-bar {
+  background: #667781;
 }
 
 .waveform-bar:nth-child(1) { height: 12px; }
