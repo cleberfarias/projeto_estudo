@@ -221,4 +221,42 @@ describe('ContactsStore', () => {
       expect(store.contacts[0].lastMessageTime).toBe(timestamp)
     })
   })
+
+  describe('fetchUnreadCounts', () => {
+    it('carrega contadores de não-lidas com sucesso', async () => {
+      const authStore = useAuthStore()
+      authStore.token = 'jwt-token-123'
+
+      ;(global.fetch as any).mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ unreadConversations: 7, unreadMessages: 42 })
+      })
+
+      const store = useContactsStore()
+
+      await store.fetchUnreadCounts()
+
+      expect(store.unreadConversations).toBe(7)
+      expect(store.unreadMessages).toBe(42)
+      expect(global.fetch).toHaveBeenCalledWith(
+        expect.stringContaining('/contacts/unread-count'),
+        expect.objectContaining({ headers: expect.objectContaining({ Authorization: 'Bearer jwt-token-123' }) })
+      )
+    })
+
+    it('não falha em erro de rede e mantém estado nulo', async () => {
+      const authStore = useAuthStore()
+      authStore.token = 'jwt-token-abc'
+
+      ;(global.fetch as any).mockRejectedValueOnce(new Error('Network error'))
+
+      const store = useContactsStore()
+      expect(store.unreadConversations).toBeNull()
+
+      await store.fetchUnreadCounts()
+
+      // Permanece nulo pois não foi possível buscar
+      expect(store.unreadConversations).toBeNull()
+    })
+  })
 })

@@ -2,9 +2,38 @@
   <div class="contacts-view">
     <div class="contacts-view__header">
       <h1 class="text-h4">Contatos</h1>
-      <v-btn color="primary" prepend-icon="mdi-plus">
+      <v-btn color="primary" prepend-icon="mdi-plus" @click="showCreateDialog = true">
         Novo Contato
       </v-btn>
+
+      <v-dialog v-model="showCreateDialog" max-width="480">
+        <v-card>
+          <v-card-title>Novo Contato</v-card-title>
+          <v-card-text>
+            <v-row>
+              <v-col cols="12">
+                <v-text-field v-model="newContact.name" label="Nome" required />
+              </v-col>
+              <v-col cols="12" md="6">
+                <v-text-field v-model="newContact.email" label="Email" />
+              </v-col>
+              <v-col cols="12" md="6">
+                <v-text-field v-model="newContact.phone" label="Telefone" />
+              </v-col>
+            </v-row>
+          </v-card-text>
+          <v-card-actions>
+            <v-spacer />
+            <v-btn variant="text" @click="showCreateDialog = false">Cancelar</v-btn>
+            <v-btn color="primary" @click="onCreateContact" :loading="creating">Criar</v-btn>
+          </v-card-actions>
+        </v-card>
+      </v-dialog>
+
+      <!-- Snackbar para feedback de criação -->
+      <v-snackbar v-model="showSnackbar" :color="snackbarColor" timeout="3000" location="top">
+        {{ snackbarText }}
+      </v-snackbar>
     </div>
 
     <div class="contacts-view__content">
@@ -86,13 +115,22 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, onMounted, computed } from 'vue'
+import { useContactsStore } from '@/stores/contacts'
 
 // Estado
 const searchQuery = ref('')
 const filterStatus = ref('Todos')
 const filterSegment = ref('Todos')
-const loading = ref(false)
+
+// Usa store de contatos
+const contactsStore = useContactsStore()
+
+const loading = computed(() => contactsStore.loading)
+
+onMounted(() => {
+  contactsStore.loadContacts()
+})
 
 // Opções de filtro
 const statusOptions = ['Todos', 'Ativo', 'Inativo', 'Lead', 'Cliente']
@@ -108,39 +146,19 @@ const headers = [
   { title: 'Ações', key: 'actions', sortable: false, align: 'end' as const },
 ]
 
-// Dados mockados
-const contacts = ref([
-  {
-    id: 1,
-    name: 'João Silva',
-    email: 'joao@empresa.com',
-    phone: '(11) 98765-4321',
-    company: 'Empresa XYZ',
-    status: 'Cliente',
-    lastInteraction: '2 dias atrás',
-    avatarColor: 'primary',
-  },
-  {
-    id: 2,
-    name: 'Maria Santos',
-    email: 'maria@tech.com',
-    phone: '(21) 91234-5678',
-    company: 'Tech Solutions',
-    status: 'Lead',
-    lastInteraction: '1 semana atrás',
-    avatarColor: 'success',
-  },
-  {
-    id: 3,
-    name: 'Pedro Costa',
-    email: 'pedro@startup.io',
-    phone: '(11) 99999-8888',
-    company: 'StartupCo',
-    status: 'Ativo',
-    lastInteraction: 'Hoje',
-    avatarColor: 'warning',
-  },
-])
+// Dados obtidos da API (mapeia formato do backend para a tabela)
+const contacts = computed(() => 
+  contactsStore.sortedContacts.map(c => ({
+    id: c.id,
+    name: c.name,
+    email: c.email,
+    phone: (c as any).phone || '',
+    company: '',
+    status: '',
+    lastInteraction: c.lastMessage || '',
+    avatarColor: null,
+  }))
+)
 
 // Helpers
 const getInitials = (name: string) => {
@@ -160,6 +178,46 @@ const getStatusColor = (status: string) => {
     'Inativo': 'grey',
   }
   return colors[status] || 'grey'
+}
+
+// UI: criação de contato
+const showCreateDialog = ref(false)
+const creating = ref(false)
+const newContact = ref({ name: '', email: '', phone: '' })
+
+// Snackbar
+const showSnackbar = ref(false)
+const snackbarText = ref('')
+const snackbarColor = ref('success')
+
+const onCreateContact = async () => {
+  if (!newContact.value.name) return
+  try {
+    creating.value = true
+    await contactsStore.createContact({
+      name: newContact.value.name,
+      email: newContact.value.email || undefined,
+      phone: newContact.value.phone || undefined
+    })
+
+    // feedback ao usuário
+    snackbarText.value = `Contato ${newContact.value.name} criado com sucesso!`
+    snackbarColor.value = 'success'
+    showSnackbar.value = true
+
+    showCreateDialog.value = false
+    newContact.value = { name: '', email: '', phone: '' }
+  } catch (err) {
+    // notifica erro
+    snackbarText.value = 'Erro ao criar contato'
+    snackbarColor.value = 'error'
+    showSnackbar.value = true
+
+    console.error('Erro ao criar contato:', err)
+    throw err
+  } finally {
+    creating.value = false
+  }
 }
 </script>
 

@@ -20,6 +20,11 @@ export const useContactsStore = defineStore('contacts', {
     selectedContactId: null as string | null,
     loading: false,
     error: null as string | null,
+    // Métricas de não-lidas fornecidas pelo backend (pode ser null se não carregado)
+    unreadConversations: null as number | null,
+    unreadMessages: null as number | null,
+    // ID do setInterval para polling de não-lidas (número no browser)
+    unreadPollingId: null as number | null,
   }),
 
   getters: {
@@ -39,6 +44,11 @@ export const useContactsStore = defineStore('contacts', {
 
     totalUnread: (state) => {
       return state.contacts.reduce((sum, c) => sum + c.unreadCount, 0);
+    },
+
+    // Prefer server-provided unread conversations count when disponível; fallback para soma local
+    unreadConversationsDisplay: (state) => {
+      return state.unreadConversations !== null ? state.unreadConversations : state.contacts.reduce((sum, c) => sum + (c.unreadCount > 0 ? 1 : 0), 0);
     },
   },
 
@@ -67,6 +77,71 @@ export const useContactsStore = defineStore('contacts', {
         console.error('❌ Erro ao carregar contatos:', error);
       } finally {
         this.loading = false;
+      }
+    },
+
+    // Cria um contato externo
+    async createContact(payload: { name?: string; email?: string; phone?: string }) {
+      try {
+        const authStore = useAuthStore();
+        const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+        if (authStore.token) headers.Authorization = `Bearer ${authStore.token}`;
+
+        const res = await fetch(`${API_URL}/contacts/`, {
+          method: 'POST',
+          headers,
+          body: JSON.stringify(payload)
+        });
+        if (!res.ok) throw new Error('Falha ao criar contato');
+        const data = await res.json();
+        // Recarrega lista após criar
+        await this.loadContacts();
+        return data
+      } catch (error: any) {
+        console.error('❌ Erro ao criar contato:', error);
+        throw error;
+      }
+    },
+
+    // Busca no backend o total de conversas e mensagens não-lidas
+    async fetchUnreadCounts() {
+      try {
+        const authStore = useAuthStore();
+        const headers: Record<string, string> = {};
+        if (authStore.token) headers.Authorization = `Bearer ${authStore.token}`;
+
+        const res = await fetch(`${API_URL}/contacts/unread-count`, { headers });
+        if (!res.ok) throw new Error('Falha ao buscar contadores de não-lidas');
+
+        const data = await res.json();
+        // API retorna: { unreadConversations: number, unreadMessages: number }
+        this.unreadConversations = Number(data.unreadConversations ?? null);
+        this.unreadMessages = Number(data.unreadMessages ?? null);
+      } catch (error) {
+        console.warn('❌ Não foi possível buscar unread counts:', error);
+        // Não falha na UI — apenas mantemos as métricas locais
+      }
+    },
+
+    // Inicia polling periódico para atualizar as métricas de não-lidas.
+    startUnreadPolling(intervalMs = 30000) {
+      // Evita múltiplos timers
+      if (this.unreadPollingId) return;
+      // Chama imediatamente (não bloquear a UI se falhar)
+      this.fetchUnreadCounts().catch(() => {});
+
+      const id = window.setInterval(() => {
+        this.fetchUnreadCounts().catch(() => {});
+      }, intervalMs);
+
+      this.unreadPollingId = Number(id);
+    },
+
+    // Para o polling
+    stopUnreadPolling() {
+      if (this.unreadPollingId) {
+        clearInterval(this.unreadPollingId);
+        this.unreadPollingId = null;
       }
     },
 

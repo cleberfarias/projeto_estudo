@@ -111,16 +111,28 @@
         :to="item.to"
         class="ds-navbar__bottom-btn"
       >
-        <v-badge
-          v-if="item.badge"
-          :content="item.badge"
-          :color="item.badgeColor || 'error'"
-          offset-x="-5"
-          offset-y="5"
-        >
-          <v-icon :icon="`mdi-${item.icon}`" />
-        </v-badge>
+        <!-- Mobile: se especificado, mostra um dot (menor e menos intrusivo) -->
+        <template v-if="isMobile && item.badgeDotMobile">
+          <v-badge dot :color="item.badgeColor || 'error'">
+            <v-icon :icon="`mdi-${item.icon}`" />
+          </v-badge>
+        </template>
+
+        <!-- Caso padrão: mostra número/texto do badge (desktop ou mobile quando não for dot) -->
+        <template v-else-if="item.badge">
+          <v-badge
+            :content="item.badge"
+            :color="item.badgeColor || 'error'"
+            offset-x="-5"
+            offset-y="5"
+          >
+            <v-icon :icon="`mdi-${item.icon}`" />
+          </v-badge>
+        </template>
+
+        <!-- Sem badge -->
         <v-icon v-else :icon="`mdi-${item.icon}`" />
+
         <span class="text-caption">{{ item.title }}</span>
       </v-btn>
     </v-bottom-navigation>

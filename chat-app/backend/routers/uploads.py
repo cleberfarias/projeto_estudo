@@ -87,6 +87,14 @@ async def confirm_upload(body: ConfirmUploadIn, current_user_id: str = Depends(g
     }
     await sio.emit("chat:new-message", msg)
 
+    # Emite unread counts de push para o destinatário (se houver)
+    if body.contactId:
+        try:
+            from socket_handlers import emit_unread_counts_for_user
+            await emit_unread_counts_for_user(body.contactId)
+        except Exception as _e:
+            print('⚠️ Falha ao emitir unread counts (upload):', _e)
+
     # Transcrição de áudio (se aplicável)
     if file_type == "audio":
         from bots.automations import publish_message

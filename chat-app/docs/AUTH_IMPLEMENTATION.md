@@ -1,8 +1,8 @@
 # Implementação de Autenticação JWT
 
-## ✅ Status: COMPLETO
+## ✅ Status: COMPLETO + GOOGLE OAUTH
 
-Este documento descreve a implementação completa do sistema de autenticação JWT integrado com Socket.IO.
+Este documento descreve a implementação completa do sistema de autenticação JWT integrado com Socket.IO e Google OAuth2.
 
 ## 📋 Funcionalidades Implementadas
 
@@ -202,7 +202,76 @@ Backend detecta token inválido/expirado
   → ChatView catch redireciona para /login
 ```
 
-## 🔒 Segurança
+## � Google OAuth2 Integration
+
+### Funcionalidades Implementadas
+
+#### 1. **Backend - Google Auth** (`backend/users.py`)
+- ✅ Endpoint `POST /auth/google` para autenticação OAuth2
+- ✅ Validação de Google ID Tokens
+- ✅ Criação automática de usuários no primeiro login
+- ✅ Compatibilidade com sistema JWT existente
+
+**Fluxo OAuth2:**
+1. Frontend recebe Google ID Token
+2. Backend valida token com `google.oauth2.id_token.verify_oauth2_token()`
+3. Extrai dados: `email`, `name`, `picture`, `sub` (Google ID)
+4. Cria usuário se não existir ou atualiza `last_login`
+5. Retorna JWT token compatível com sistema existente
+
+#### 2. **Frontend - Google Sign-In** (`frontend/src/views/LoginView.vue`)
+- ✅ Botão "Continuar com Google"
+- ✅ Integração com Google Identity Services
+- ✅ Popup de autenticação Google
+- ✅ Tratamento de erros e loading states
+
+#### 3. **Store de Autenticação** (`frontend/src/stores/auth.ts`)
+- ✅ Método `googleLogin()` compatível com sistema existente
+- ✅ Persistência no localStorage
+- ✅ Suporte a campos adicionais: `picture`, `auth_provider`
+
+### Configuração
+
+#### Variáveis de Ambiente
+```bash
+# Backend
+GOOGLE_CLIENT_ID=seu_client_id.googleusercontent.com
+
+# Frontend  
+VITE_GOOGLE_CLIENT_ID=seu_client_id.googleusercontent.com
+```
+
+#### Google Cloud Console
+1. **APIs**: Ativar "Google Identity API"
+2. **Credenciais**: Criar "OAuth 2.0 Client ID" (tipo: Web application)
+3. **Origens autorizadas**: `http://localhost:5173`, `https://seudominio.com`
+
+### Fluxo Completo Google OAuth
+
+```
+Usuário clica "Continuar com Google"
+  → Google Identity Services carrega
+  → Popup Google aparece
+  → Usuário faz login no Google
+  → Google retorna ID Token
+  → Frontend envia POST /auth/google
+  → Backend valida token com Google
+  → Backend cria/atualiza usuário
+  → Backend retorna JWT token
+  → authStore.googleLogin() salva no localStorage
+  → Router redireciona para "/"
+  → ChatView conecta Socket.IO com token ✅
+```
+
+### Segurança Google OAuth
+
+- ✅ **Token Validation**: Backend valida tokens diretamente com Google
+- ✅ **No Password Storage**: Usuários OAuth não têm senha local
+- ✅ **Automatic User Creation**: Primeiro login cria conta automaticamente
+- ✅ **Provider Tracking**: Campo `auth_provider: "google"` diferencia usuários
+- ✅ **JWT Compatibility**: Mantém total compatibilidade com sistema existente
+
+## �🔒 Segurança
 
 ### Implementado
 - ✅ Tokens JWT com expiry (60 minutos)
@@ -252,7 +321,7 @@ Backend detecta token inválido/expirado
 
 1. **Refresh Tokens**: Implementar renovação automática de tokens
 2. **2FA**: Adicionar autenticação de dois fatores
-3. **OAuth**: Integrar com Google/GitHub/Facebook
+3. **OAuth**: ✅ **IMPLEMENTADO** - Google OAuth2 integrado
 4. **Rate Limiting**: Limitar tentativas de login
 5. **Auditoria**: Logs de autenticação e acessos
 6. **Testes**: Testes unitários e E2E do fluxo de auth

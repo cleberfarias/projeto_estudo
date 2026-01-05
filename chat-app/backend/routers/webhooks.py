@@ -42,6 +42,14 @@ async def _persist_and_broadcast(author: str, text: str, target_user_id: Optiona
     if emit_task:
         await emit_task
 
+    # Emite unread counts de push para o destinatário (se houver)
+    if target_user_id:
+        try:
+            from socket_handlers import emit_unread_counts_for_user
+            await emit_unread_counts_for_user(target_user_id)
+        except Exception as _e:
+            print('⚠️ Falha ao emitir unread counts (webhook):', _e)
+
 
 @router.get("/meta")
 async def webhook_meta_verify(

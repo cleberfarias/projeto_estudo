@@ -100,6 +100,22 @@
                       Entrar
                     </v-btn>
 
+                    <v-divider class="my-4" />
+
+                    <!-- LOGIN COM GOOGLE -->
+                    <v-btn
+                      color="white"
+                      size="large"
+                      block
+                      variant="outlined"
+                      :loading="googleLoading"
+                      @click="handleGoogleLogin"
+                      class="mb-3"
+                    >
+                      <v-icon start color="red">mdi-google</v-icon>
+                      Continuar com Google
+                    </v-btn>
+
                     <div class="text-center">
                       <v-btn
                         variant="text"
@@ -169,6 +185,22 @@
                       <v-icon start>mdi-account-plus</v-icon>
                       Criar conta
                     </v-btn>
+
+                    <v-divider class="my-4" />
+
+                    <!-- REGISTRO COM GOOGLE -->
+                    <v-btn
+                      color="white"
+                      size="large"
+                      block
+                      variant="outlined"
+                      :loading="googleLoading"
+                      @click="handleGoogleLogin"
+                      class="mb-3"
+                    >
+                      <v-icon start color="red">mdi-google</v-icon>
+                      Continuar com Google
+                    </v-btn>
                   </v-form>
                 </v-window-item>
               </v-window>
@@ -200,6 +232,7 @@ const authStore = useAuthStore();
 // Estado
 const tab = ref('login');
 const loading = ref(false);
+const googleLoading = ref(false);
 const showPassword = ref(false);
 const rememberMe = ref(false);
 const confirmPassword = ref('');
@@ -281,6 +314,80 @@ async function handleRegister() {
     showAlert('error', error.message || 'Erro ao criar conta');
   } finally {
     loading.value = false;
+  }
+}
+
+async function handleGoogleLogin() {
+  googleLoading.value = true;
+  try {
+    console.debug('[Google] Iniciando fluxo de login')
+    // Carrega Google Identity Services
+    if (!window.google) {
+      console.debug('[Google] script não presente, carregando...')
+      await loadGoogleScript();
+    }
+
+    // Inicializa Google Sign-In
+    const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+    if (!clientId) {
+      throw new Error('Google Client ID não configurado')
+    }
+
+    console.debug('[Google] Inicializando com client_id=', clientId)
+
+    window.google.accounts.id.initialize({
+      client_id: clientId,
+      callback: handleGoogleCallback
+    });
+
+    // Exibe o popup de login (ou One Tap)
+    window.google.accounts.id.prompt();
+
+  } catch (error: any) {
+    console.error('[Google] Erro ao iniciar login:', error)
+    showAlert('error', error.message || 'Erro ao iniciar login com Google');
+    googleLoading.value = false;
+  }
+}
+
+  async function handleGoogleCallback(response: any) {
+  googleLoading.value = true;
+  try {
+    console.debug('[Google] Callback recebido, credential length=', response?.credential?.length)
+    await authStore.googleLogin(baseUrl, response.credential);
+    showAlert('success', 'Login com Google realizado com sucesso!');
+    setTimeout(() => {
+      router.push('/');
+    }, 500);
+  } catch (error: any) {
+    console.error('[Google] Erro no callback/login:', error)
+    showAlert('error', error.message || 'Erro no login com Google');
+  } finally {
+    googleLoading.value = false;
+  }
+}
+
+function loadGoogleScript(): Promise<void> {
+  return new Promise((resolve, reject) => {
+    if (window.google) {
+      resolve();
+      return;
+    }
+
+    const script = document.createElement('script');
+    script.src = 'https://accounts.google.com/gsi/client';
+    script.async = true;
+    script.defer = true;
+    script.onload = () => resolve();
+    script.onerror = () => reject(new Error('Falha ao carregar Google Identity Services'));
+    document.head.appendChild(script);
+  });
+}
+
+// Tipos para Google Identity Services
+declare global {
+  interface Window {
+    google: any;
   }
 }
 </script>
