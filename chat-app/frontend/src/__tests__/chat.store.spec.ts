@@ -239,6 +239,36 @@ describe('ChatStore', () => {
         (call) => call[0] === 'chat:new-message'
       )?.[1]
 
+      expect(newMessageListener).toBeDefined()
+    })
+
+    it('atualiza contadores não-lidas com chat:unread-updated', async () => {
+      const chat = useChatStore()
+      await chat.connect('test-token')
+
+      const unreadListener = mockSocket.on.mock.calls.find((call) => call[0] === 'chat:unread-updated')?.[1]
+      expect(unreadListener).toBeDefined()
+
+      // Mock contacts store
+      const { useContactsStore } = await import('@/stores/contacts')
+      const contactsStore = useContactsStore()
+      expect(contactsStore.unreadConversations).toBeNull()
+      expect(contactsStore.unreadMessages).toBeNull()
+
+      await unreadListener?.({ unreadConversations: 7, unreadMessages: 42 })
+
+      expect(contactsStore.unreadConversations).toBe(7)
+      expect(contactsStore.unreadMessages).toBe(42)
+    })
+
+    it('filtra mensagens de agentes no chat:new-message', async () => {
+      const chat = useChatStore()
+      await chat.connect('test-token')
+
+      const newMessageListener = mockSocket.on.mock.calls.find(
+        (call) => call[0] === 'chat:new-message'
+      )?.[1]
+
       const agentMessage: Message = {
         id: '456',
         text: 'Posso ajudar?',

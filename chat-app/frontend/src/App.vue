@@ -11,11 +11,12 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, onMounted } from 'vue'
+import { computed, ref, onMounted, watch, onBeforeUnmount } from 'vue'
 import { useRoute } from 'vue-router'
 import { DSNavBar } from './design-system/components/DSNavBar'
 import type { NavItem } from './design-system/components/DSNavBar'
 import { useCustomBots } from './composables/useCustomBots'
+import { useContactsStore } from '@/stores/contacts'
 
 const route = useRoute()
 
@@ -35,8 +36,7 @@ const navItems = ref<NavItem[]>([
     title: 'Conversas',
     icon: 'message-text',
     to: '/chat',
-    badge: 5,
-    badgeColor: 'success',
+    // badge agora será atualizado dinamicamente a partir do store de contatos
   },
   {
     id: 'contatos',
@@ -70,11 +70,44 @@ const navItems = ref<NavItem[]>([
   },
 ])
 
+// Mantém o badge de Conversas sincronizado com o total de conversas não-lidas
+const contactsStore = useContactsStore()
+// Prefer server-provided unread conversations quando disponível
+const unreadCount = computed(() => contactsStore.unreadConversationsDisplay)
+watch(unreadCount, (val) => {
+  const idx = navItems.value.findIndex(i => i.id === 'chat')
+  if (idx !== -1) {
+    const item = navItems.value[idx]!
+    // Cap no badge em 99+
+    const displayBadge = (val ?? 0) > 99 ? '99+' : ((val ?? 0) > 0 ? val : undefined)
+
+    navItems.value[idx] = {
+      ...item,
+      // mostra número (ou '99+') no desktop; no mobile mostramos apenas um dot via 'badgeDotMobile'
+      badge: displayBadge,
+      badgeColor: (val ?? 0) > 0 ? 'error' : 'success',
+      badgeDotMobile: (val ?? 0) > 0,
+    }
+  }
+}, { immediate: true })
+
 // Carrega agentes de forma assíncrona sem bloquear o menu
 onMounted(async () => {
   try {
     const { bots, refreshBots } = useCustomBots()
     await refreshBots()
+
+    // Inicia polling de unread counts ao montar a app (chama imediatamente)
+    try {
+      contactsStore.startUnreadPolling()
+    } catch (e) {
+      // Silencioso — se falhar, fallback local permanece
+    }
+
+    // Ao desmontar a app, para o polling
+    onBeforeUnmount(() => {
+      contactsStore.stopUnreadPolling()
+    })
     
     if (Array.isArray(bots.value) && bots.value.length > 0) {
       // Atualiza o item Bots/Agentes com os agentes carregados

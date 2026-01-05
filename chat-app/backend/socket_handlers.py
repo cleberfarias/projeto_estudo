@@ -338,6 +338,11 @@ def register_socket_handlers():
                         await sio.emit("chat:new-message", response, room=contact_sid)
                     else:
                         print(f"📪 Contato {message_create.contactId} está offline - mensagem salva")
+                    # Atualiza contadores de não-lidas para o destinatário (push)
+                    try:
+                        await emit_unread_counts_for_user(message_create.contactId)
+                    except Exception as _e:
+                        print("⚠️ Falha ao emitir unread counts para destinatário:", _e)
                 else:
                     await sio.emit("chat:new-message", response, skip_sid=sid)
                 await asyncio.sleep(0.2)
@@ -411,11 +416,53 @@ def register_socket_handlers():
             )
             await sio.emit("chat:read", {"ids": message_ids})
             print(f"👁️ Mensagens marcadas como lidas: {result.modified_count}")
+
+            # Emite atualização de contadores para o usuário que marcou como lido
+            try:
+                environ = sio.get_environ(sid) or {}
+                user_id = environ.get("user_id")
+                if user_id:
+                    await emit_unread_counts_for_user(user_id)
+            except Exception as _e:
+                print("⚠️ Falha ao emitir unread counts após chat:read:", _e)
         except Exception as e:
             print(f"❌ Erro em chat:read: {e}")
 
     async def wrapper_process_agent_message(sid, data):
         await process_agent_message(sid, data)
+
+    async def emit_unread_counts_for_user(user_id: str):
+        """Calcula e emite para o usuário conectado a contagem de conversas e mensagens não-lidas."""
+        try:
+            # Filtra mensagens dirigidas ao usuário que não estão marcadas como 'read'
+            filter_query = {"contactId": user_id, "status": {"$ne": "read"}}
+            unread_messages = await messages_collection.count_documents(filter_query)
+            try:
+                distinct_senders = await messages_collection.distinct("userId", filter_query)
+                distinct_senders = [s for s in distinct_senders if s]
+                unread_conversations = len(distinct_senders)
+            except Exception:
+                # Fallback: carrega e calcula manualmente
+                cursor = messages_collection.find(filter_query, {"userId": 1})
+                rows = await cursor.to_list(None)
+                senders = set(r.get("userId") for r in rows if r.get("userId"))
+                unread_conversations = len(senders)
+
+            target_sid = user_sessions.get(user_id)
+            payload = {
+                "unreadConversations": unread_conversations,
+                "unreadMessages": unread_messages
+            }
+            if target_sid:
+                await sio.emit("chat:unread-updated", payload, room=target_sid)
+            else:
+                # opcional: caso deseje broadcast global, mas aqui apenas logamos
+                print(f"📪 Usuario {user_id} offline - unread counts calculado: {payload}")
+            return payload
+        except Exception as e:
+            print(f"❌ Erro ao emitir unread counts para {user_id}: {e}")
+            return None
+
     @sio.on("agent:send")
     async def handle_agent_message(sid, data):
         """Wrapper that calls process_agent_message; this improves testability."""

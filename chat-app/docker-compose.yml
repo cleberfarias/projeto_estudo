@@ -57,6 +57,8 @@ services:
       - ENVIRONMENT=${ENVIRONMENT:-development}
       - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-http://localhost:5173,http://localhost:3000}
       - WA_OWNER_USER_ID=${WA_OWNER_USER_ID:-}
+      # Google OAuth
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
       # Storage (MinIO/S3)
       - S3_ENDPOINT=http://minio:9000
       - S3_REGION=us-east-1
@@ -106,6 +108,7 @@ services:
     environment:
       - VITE_SOCKET_URL=http://localhost:3000
       - VITE_API_URL=http://localhost:3000
+      - VITE_GOOGLE_CLIENT_ID=${VITE_GOOGLE_CLIENT_ID}
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:5173/"]
       interval: 10s

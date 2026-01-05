@@ -2,7 +2,7 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 
-type User = { id: string; name: string; email: string }
+type User = { id: string; name: string; email: string; picture?: string; auth_provider?: string }
 
 const STORAGE_KEY = 'app_auth'
 
@@ -34,7 +34,14 @@ export const useAuthStore = defineStore('auth', () => {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email, password })
     })
-    if (!res.ok) throw new Error('Credenciais inválidas')
+    if (!res.ok) {
+      try {
+        const err = await res.json()
+        throw new Error(err.detail || err.message || 'Credenciais inválidas')
+      } catch {
+        throw new Error('Credenciais inválidas')
+      }
+    }
     const data = await res.json()
     token.value = data.access_token
     user.value = { 
@@ -51,9 +58,43 @@ export const useAuthStore = defineStore('auth', () => {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ name, email, password })
     })
-    if (!res.ok) throw new Error('Falha ao registrar')
+    if (!res.ok) {
+      try {
+        const err = await res.json()
+        throw new Error(err.detail || err.message || 'Falha ao registrar')
+      } catch {
+        throw new Error('Falha ao registrar')
+      }
+    }
     
     await login(baseUrl, email, password)
+  }
+
+  async function googleLogin(baseUrl: string, googleToken: string) {
+    const res = await fetch(`${baseUrl}/auth/google`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token: googleToken })
+    })
+    if (!res.ok) {
+      // tenta extrair detalhe do backend para mensagens mais claras
+      try {
+        const err = await res.json()
+        throw new Error(err.detail || err.message || `Falha na autenticação Google (status ${res.status})`)
+      } catch (e: any) {
+        throw new Error(e.message || 'Falha na autenticação Google')
+      }
+    }
+    const data = await res.json()
+    token.value = data.access_token
+    user.value = { 
+      id: data.user.id,
+      name: data.user.name, 
+      email: data.user.email,
+      picture: data.user.picture,
+      auth_provider: data.user.auth_provider
+    }
+    persist()
   }
 
   function logout() {
@@ -85,5 +126,5 @@ export const useAuthStore = defineStore('auth', () => {
     return token.value !== null && !isTokenExpired()
   }
 
-  return { token, user, login, register, logout, load, isTokenExpired, isAuthenticated }
+  return { token, user, login, register, googleLogin, logout, load, isTokenExpired, isAuthenticated }
 })

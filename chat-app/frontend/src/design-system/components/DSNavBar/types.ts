@@ -24,14 +24,19 @@ export interface NavItem {
   to?: string;
   
   /**
-   * Badge opcional (ex: contador de notificações)
+   * Badge opcional (ex: contador de notificações). Pode ser número ou texto (ex: '99+').
    */
-  badge?: number;
+  badge?: number | string;
   
   /**
    * Cor do badge
    */
   badgeColor?: string;
+
+  /**
+   * Quando true e em mobile, mostra um dot em vez do número (útil para bottom navigation)
+   */
+  badgeDotMobile?: boolean;
   
   /**
    * Subitems (para menus expansíveis)

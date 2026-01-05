@@ -233,6 +233,15 @@ export const useChatStore = defineStore('chat', {
         contactsStore.setOnlineStatus(data.userId, false);
       });
 
+      // 📊 Evento: Servidor atualiza contadores de não-lidas (push)
+      this.socket.on('chat:unread-updated', async (data: { unreadConversations: number; unreadMessages: number }) => {
+        console.log('📣 unread-updated recebido:', data);
+        const { useContactsStore } = await import('./contacts');
+        const contactsStore = useContactsStore();
+        contactsStore.unreadConversations = data.unreadConversations;
+        contactsStore.unreadMessages = data.unreadMessages;
+      });
+
       // 📜 Carrega histórico inicial
       await this.loadMessages();
     },

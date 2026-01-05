@@ -70,6 +70,14 @@ async def publish_message(
     else:
         await sio_emit("chat:new-message", response)
 
+    # Se a mensagem foi direcionada a um contato específico, emite unread counts via Socket.IO
+    if contact_id:
+        try:
+            from socket_handlers import emit_unread_counts_for_user
+            await emit_unread_counts_for_user(contact_id)
+        except Exception as _e:
+            print("⚠️ Falha ao emitir unread counts (automations):", _e)
+
 
 async def _create_cron_job(
     sio_emit: Callable[[str, dict[str, Any]], Any],
